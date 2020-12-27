@@ -1,3 +1,5 @@
+# Typeless: great editor tooling for JavaScript without types or annotations
+
 An [LSP server](https://microsoft.github.io/language-server-protocol) is a program that can be used by an [IDE](https://en.wikipedia.org/wiki/Integrated_development_environment) to provide editing support for a programming language. Typeless is an LSP server for JavaScript that provides the same level of editor tooling for JavaScript as programmers get when using TypeScript. To do this, Typeless asks programmers to provide tests that it uses to analyse the code. Editor tooling provided by Typeless includes:
 
 - Inline syntax and semantic errors
