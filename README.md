@@ -8,7 +8,7 @@ An [LSP server](https://microsoft.github.io/language-server-protocol) is a progr
 Unlike other editor tooling available for JavaScript, Typeless does not require annotations and works smoothly across function boundaries.
 
 ### Great, how do I get it?
-Typeless is currently in the design phase and can't be used. If you're interested in this tool, please star the GitHub page or upvote the newspost that brought you here. If you want to comment on the Typeless specification and have no please to do so, please leave your comment in a GitHub issue.
+Typeless is currently in the design phase and can't be used. If you're interested in this tool, please star the GitHub page or upvote the newspost that brought you here. If you want to comment on the Typeless specification and have no please to do so, please leave your comment in a GitHub issue. You can also create a pull request to suggest changes to the Typeless design.
 
 ## Why use JavaScript and Typeless when I can use TypeScript?
 Types in their simplest form, such as the type `number` or `string`, are easy to understand. However, as TypeScript applications get more complex so do the types required to describe them. The TypeScript handbook features a section called [Advanced types](https://www.typescriptlang.org/docs/handbook/advanced-types.html), which indeed can be used to write advanced types. Here's an example:
