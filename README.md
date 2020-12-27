@@ -1,36 +1,5 @@
 Typeless is an LSP server for JavaScript that provides the same level of editor tooling for JavaScript as programmers get when using TypeScript. To do this, Typeless asks programmers to provide tests that it uses to analyse the code.
 
-## What about JavaScript support in the existing TypeScript LSP server?
-
-The JavaScript language tooling provided by the TypeScript server depends on type inference. It performs type inference within the scope of a function, which is great. The following example showcases this:
-
-```javascript
-function foo() {
-  var person = { name: Remy, age: 31 };
-  person.
-  // We get autocompletion for name and age after typing the dot
-
-  person.name
-  // Executing go to definition on "name" jumps to "name" in "{ name: Remy, age: 31 }";
-}
-```
-
-However, type inference is not performed at the function level, which you can see in this example:
-
-```javascript
-function foo() {
-  var person = { name: Remy, age: 31 };
-  usePerson(person)
-}
-
-function usePerson(x) {
-  x.
-  // After typing the dot no semantic code completion is provided. There is only textual code completion based on what other identifiers occur in this file, for example 'person' is in the list.
-}
-```
-
-With type inference only working in parts of the program, type-based JavaScript editor tooling is not able to match TypeScript editor tooling.
-
 ## Why use JavaScript and Typeless when I can use TypeScript?
 Types in their simplest form, such as the type `number` or `string`, are easy to understand. However, as TypeScript applications get more complex so do the types required to describe them. The TypeScript handbook features a section called [Advanced types](https://www.typescriptlang.org/docs/handbook/advanced-types.html), which indeed can be used to write advanced types. Here's an example:
 
@@ -60,6 +29,37 @@ The type above has become a little program of its own, and understanding which v
 
 Conceptually, we view type-checking as a way of formally proving that a particular class of errors does not occur in a program. Because compilers are limited in the extend to which they can provide these proofs automatically, the programmer is often required to provide type annotations to help the compiler. For programmers who are not interested in providing formal correctness proofs of their program, we want to offer a typeless programming experience.
 
+## Why not use the JavaScript support in TypeScript's LSP server?
+
+The JavaScript language tooling provided by the TypeScript language server depends on type inference. It performs type inference within the scope of a function, which is great. The following example showcases this:
+
+```javascript
+function foo() {
+  var person = { name: Remy, age: 31 };
+  person.
+  // We get autocompletion for name and age after typing the dot
+
+  person.name
+  // Executing go to definition on "name" jumps to "name" in "{ name: Remy, age: 31 }";
+}
+```
+
+However, type inference is not performed at the function level, which you can see in this example:
+
+```javascript
+function foo() {
+  var person = { name: Remy, age: 31 };
+  usePerson(person)
+}
+
+function usePerson(person) {
+  person.
+  // After typing the dot, no semantic code completion is provided. There is only textual code completion based on what other identifiers occur in this file, for example 'person' is in the list.
+}
+```
+
+With type inference only working in parts of the program, type-based JavaScript editor tooling is not able to match TypeScript editor tooling.
+
 ## How does Typeless work?
 Instead of requiring the programmer to write type annotations, Typeless requires them to write tests. Since programmers are already inclined to write tests, this may not be much of an burden. While the programmer is working, Typeless runs tests in the background to understand the program and provide editor tooling.
 
@@ -80,7 +80,7 @@ function fibonacci(n) {
 
 # Examples of editing support by Typeless
 
-## Diagnostics
+## Inline errors
 
 If a test throws an unhandled error, Typeless shows the error where it was thrown:
 ```javascript
@@ -96,13 +96,13 @@ function fibonacci(n) {
 }
 ```
 
-Diagnostics for syntax error work as they already do in existing JavaScript tooling.
+Diagnostics for syntax errors work as they already do in existing JavaScript tooling.
 
-### What if the bug is not where the error was thrown?
+### What if the problem is not where the error was thrown?
 
-A function can be assigned a test by creating a test with the same name. We assume that as long as a function's test is passing, that function is valid. When another test then fails while in this function, we conclude that invalid parameters were passed. 
+A function named `X` can be *assigned* a test by creating a test function named `XTest`. Typeless assumes that as long as a function's test is passing, that function is `correct`. When a test fails while inside a call to a correct function, it concludes that the error was at the call site, not where the failure occurred.
 
-The error is shown at the call site and provides examples of correct arguments that can be passed to the function which are taken from the function's test.
+The error is shown at the call site and provides examples of correct arguments that can be passed to the function, which are taken from the function's test.
 
 ```javascript
 function highLevelTest() {
@@ -122,7 +122,7 @@ function fibonacci(n) {
 }
 ```
 
-When errors occurs in imported packages, Typeless assumes the fault is in the codebase running the test.
+When errors occur in imported packages, Typeless assumes the fault is in the codebase running the test.
 ```javascript
 var fs = require('fs');
 
@@ -141,11 +141,8 @@ function foo() {
 
 > Can we treat TypeError in a special way to provide better feedback?
 
-> Do we have issues with global state?
-
-
-## Hover, code completion and signature help.
-Typeless remembers the values of variables at different points during test execution, and uses this to show examples values when hovering over a variable, when providing code completion and when providing call signature help.
+## Hover tooltips, code completion and function call help.
+Typeless remembers the values of variables at different points during test execution, and uses this to show example values when hovering over a variable, when providing code completion and when providing function call help.
 
 For example:
 ```javascript
@@ -163,11 +160,11 @@ function fibonacci(n) {
 
 function fibonacciUser() {
   fibonacci(
-  // After the opening paranthesis, Typeless will suggest two signatures for fibonacci, one passing 2 and one passing 3.
+  // After the opening paranthesis, Typeless will suggest two options for calling fibonacci, one passing 2 and one passing 3.
 }
 ```
 
-Complex values will only be represented up to one level deep:
+Objects and array are only represented up to one level deep:
 ```javascript
 function fooTest() {
   foo({ name: 'Remy', favoriteColors: ['Brown', 'Green']})
@@ -178,20 +175,22 @@ function foo(value) {
   // Hovering over value will show { name: "Remy", favoriteColors: [..] }
 }
 ```
+To inspect the value of `favoriteColors` in the above example, the programmer would need to write the expression `value.favoriteColors` somewhere.
 
-> How do we represent values in general? We only have markdown to work with. I guess programmers can select values from objects by writing more code..
+If an object has a __proto__ field containing a named constructor, then the constructor name is shown before the objects opening brace:
+```
+class Animal { constructor(age) { this.age = age; } }
 
-> Do we show the ```__proto__``` field of values?
+function foo() {
+  const x = new Animal(3);
+  // Hovering over x will show 'Animal { age: 3 }'
+}
+```
 
 ### Documentation
-The information provided by hover, code completion and signature help can be enhanced by adding documentation to the program. You can do this using JSDoc comments.
+The information provided by hover, code completion and function call help can be enhanced by adding documentation to the program. You can do this using JSDoc comments.
 
 ```javascript
-test fibonacci() {
-  assert(fibonnaci(2) == 3)
-  assert(fibonacci(3) == 5)
-}
-
 /**
  * Given a number n, computes the n'th fibonacci number.
  * 
@@ -203,32 +202,38 @@ function fibonacci(n) {
   // On hover over n, the documentation for n is shown together with example values 2 and 3.
 }
 
-function highLevel() {
+function fibonacciTest() {
+  assert(fibonnaci(2) == 3)
+  assert(fibonacci(3) == 5)
+}
+
+function highLevelTest() {
   fibonacci
-  // On hover over fiboancci, the documentation for fibonacci is shown.
+  // On hover over fibonacci, the documentation for fibonacci is shown.
   fibonacci(
-  // Signature help is provided, showing the documentation for the parameter n and example values 2 and 3.
+  // Function call help is provided, showing the documentation for the parameter n and example values 2 and 3.
   const result = fibonacci(5);
   // On hover over "result", the documentation for the return value of fibonacci is shown.
 }
 ```
 
-Documentation can be attached to object members by returning the object from a function, like so:
+Documentation remains attached to values when they traverse function boundaries:
 ```javascript
 /**
  * @param name the name of the person
  * @param age the age of the person
- * @returns person
- * @returns person.name the name of the person
- * @returns person.age the age of the person
  */
 function Person(name, age) {
   this.name = name;
   this.age = age;
 }
-```
 
-> Can we get an example without as much repetition as the above one?
+function PersonTest() {
+  const remy = new Person("Remy", 32);
+  remy.name
+  // The hover tooltip over name shows the documentation 'the name of the person' as well as the value 'Remy'
+}
+```
 
 ## Go to definition
 Typeless considers the following statements as definitions:
@@ -238,16 +243,36 @@ Typeless considers the following statements as definitions:
 - a member in an object literal.
 - a module exporting a member.
 
-Note that if an object is assigned a new member through the bracket, that is not considered a definition.
+Note that if an object is assigned a new member through the bracket syntax, such as `remy['age'] = 32`, that is not considered a definition.
 
 When executing 'go to definition' on a reference, Typeless will jump to the definition that is referenced.
 
 A example of a definition resulting from a variable declaration:
 ```javascript
-function multipleAssignments() {
-  var x = 1;
-  x = 2;
-  x = 3;
+function variables() {
+  const x = 2;
+  return x + 3;
+  // Goto definition on x will jump to "x" in "const x";
+}
+```
+
+Definition locations are attached to the value of the definition, so they travel together with that value. 
+
+```javascript
+function travel() {  
+  var obj1 = { name: 'Remy' }
+  var obj2 = Object.assign({}, obj1);
+  obj2.name
+  // Goto definition on name will jump to `name` in `{ name: 'Remy' }`
+}
+```
+
+When a variable is reassigned the definition location is copied from the previous value to the new one.
+
+```javascript
+function reAssignment() {
+  var x; // Current value is 'undefined', to which the definition location is attached
+  x = 2; // Definition location is copied from 'undefined' to '2'
   // Goto definition on x will jump to "x" in "var x";
 }
 ```
@@ -285,16 +310,14 @@ function createJaap() {
 function useObject(boolean) {
   const person = boolean ? createJohan() : createJaap();
   return person.name;
-  // Goto definition on name returns both "name" in "name: 'Johan'" and in "name: 'Jaap'"
+  // Goto definition on name returns links to both "name" in "name: 'Johan'" and in "name: 'Jaap'"
 }
 ```
 
-> Do we need special consideration for things like Object.assign?
-
-## Find references and rename
+## Find references and rename refactoring
 Find references is like an inverse of 'go to definition'. When executed on a definition or a reference to a definiton, find references will show a list of the references to that definition.
 
-Rename relates strongly to find references, since it will rename a definition and all references to that definition.
+Rename refactoring is implemented using the find references functionality, since it will renames a definition and all references to that definition.
 
 Both find references and rename on definitions that are not local, which are definitions from object or module members, require Typeless to execute all tests in a program, which can take time in large programs. The only way to mitigate this slowness is to split a large program up into several packages.
 
@@ -303,15 +326,11 @@ For non-local definitions, Typeless will stream results for a 'find references' 
 ## Value origin tracking
 Whenever a new value is created, Typeless will remember the location where that value was created together with the value. This 'value origin' is used for the following features.
 
-### Go to type definition
-In Typeless there are no types, just values, so the LSP command 'Go to type definition' changes its meaning to 'go to value definition'. When this command is executing on a variable, it will jump to where the value that is assigned to this variable was created.
+### Go to value created
+In Typeless there are no types, just values, so the IDE command 'Go to type definition' changes its meaning to 'go to value creation'. When this command is executed on a variable, it will jump to where the value that is assigned to this variable was created.
 
 ```javascript
-function usePersonTest() {
-  usePerson();
-}
-
-function usePerson() {
+function PersonTest() {
   const person = new Person("Remy");
   return person.name;
   // Go to type definition on 'name' will jump to the literal "Remy"
