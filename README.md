@@ -32,7 +32,7 @@ function doesNotCompile() {
 }
 ```
 
-However, type inference only works for part of the code, and the programmer has to write type annotations where it doesn't work, or otherwise risk losing the safety provided by types. For TypeScript, type annotations should be provided on all function signatures since there is no type inference on functions.
+However, type inference only works for part of the code, and the programmer has to write type annotations where it doesn't or otherwise risk losing the safety provided by types. For TypeScript, type annotations should be provided on all function signatures since there is no type inference on them.
 
 As TypeScript applications get more complex so do the types required to describe them. The TypeScript handbook features a section called [Advanced types](https://www.typescriptlang.org/docs/handbook/advanced-types.html), which indeed can be used to write advanced types. Here's an example:
 
