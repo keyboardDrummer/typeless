@@ -105,13 +105,11 @@ function fibonacci(n) {
 }
 ```
 
-Diagnostics for syntax errors work as they already do in existing JavaScript tooling.
+Inline errors for syntax errors work as they already do in existing JavaScript tooling.
 
 ### What if the problem is not where the error was thrown?
 
-A function named `X` can be *assigned* a test by creating a test function named `XTest`. Typeless assumes that as long as a function's test is passing, that function is `correct`. When a test fails while inside a call to a correct function, it concludes that the error was at the call site, not where the failure occurred.
-
-The error is shown at the call site and provides examples of correct arguments that can be passed to the function, which are taken from the function's test.
+A function named `X` can be assigned a test by creating a parameterless function named `XTest`. Typeless assumes that as long as a function's test is passing, that function is `correct`. When a test fails while inside a call to a correct function, it concludes that the error was at the call site, not where the failure occurred. The error is then shown at the call site together with examples of arguments that can be passed to the function which are taken from the function's test.
 
 ```javascript
 function highLevelTest() {
@@ -131,7 +129,8 @@ function fibonacci(n) {
 }
 ```
 
-When errors occur in imported packages, Typeless assumes the fault is in the codebase running the test.
+When an error occurs in an imported package, Typeless assumes the fault is in the call to the imported package.
+
 ```javascript
 var fs = require('fs');
 
@@ -145,10 +144,6 @@ function foo() {
   // The value '3' passed to writeFileSync is not valid.
 }
 ```
-
-> Do we need better error messages when incorrectly calling library functions? Can we get example values?
-
-> Can we treat TypeError in a special way to provide better feedback?
 
 ## Hover tooltips, code completion and function call help.
 Typeless remembers the values of variables at different points during test execution, and uses this to show example values when hovering over a variable, when providing code completion and when providing function call help.
