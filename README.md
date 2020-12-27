@@ -1,5 +1,8 @@
 An LSP server is a program that can be used by an IDE to provide editing support for a programming language. Typeless is an LSP server for JavaScript that provides the same level of editor tooling for JavaScript as programmers get when using TypeScript. To do this, Typeless asks programmers to provide tests that it uses to analyse the code.
 
+### Great, how do I get it?
+Currently Typeless is in development and can't be used. If you're interested in the project, please star the GitHub page or upvote the newspost that brought you here. If you want to comment on the Typeless specification and have no please to do so, please leave your comment in a GitHub issue.
+
 ## Why use JavaScript and Typeless when I can use TypeScript?
 Types in their simplest form, such as the type `number` or `string`, are easy to understand. However, as TypeScript applications get more complex so do the types required to describe them. The TypeScript handbook features a section called [Advanced types](https://www.typescriptlang.org/docs/handbook/advanced-types.html), which indeed can be used to write advanced types. Here's an example:
 
@@ -372,7 +375,7 @@ function Person(name) {
 ## Generators
 Generators can be used to supercharge your tests. Generators are used to generate different test values to find edge cases in your code. The editor tooling will use your generators to generate different test values in the background while you're programming. When an interesting edge case is found, the editor tooling will suggest to explicitly add this value to your code so that it's always tested against when building your program.
 
-> Improve the below example.
+The specification of generators is still a work in progress. Below is an example of what it might look like:
 
 ```javascript
 function fibonaccisTest() {
@@ -398,14 +401,13 @@ function fibonacciFastHelper(n) {
 
 ## Strict mode
   
-If any line of code is not hit by any test function that's an error:
+In strict mode, if any line of code is not hit by any test function, that's an error:
 ```javascript
 
-test myFirstTest() {
+fibonacciTest() {
   assert(fibonnaci(0) == 1)
   assert(fibonacci(1) == 1)
 }
-
 
 function fibonacci(x) {
   if (x < 2) return 1;
@@ -417,5 +419,6 @@ function fibonacci(x) {
 
 # Out of scope
 
-textdocument/implementation does not apply
-textdocument/declaration does not apply
+The following editor tooling features provided by the LSP protocol are not implemented:
+- textdocument/implementation does not apply
+- textdocument/declaration does not apply
