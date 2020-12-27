@@ -30,8 +30,7 @@ The type above has become a little program of its own, and understanding which v
 Conceptually, we view type-checking as a way of formally proving that a particular class of errors does not occur in a program. Because compilers are limited in the extend to which they can provide these proofs automatically, the programmer is often required to provide type annotations to help the compiler. For programmers who are not interested in providing formal correctness proofs of their program, we want to offer a typeless programming experience.
 
 ## Why not use the JavaScript support in TypeScript's LSP server?
-
-The JavaScript language tooling provided by the TypeScript language server depends on type inference. It performs type inference within the scope of a function, which is great. The following example showcases this:
+The existing TypeScript language server that's included in [the TypeScript repository](https://github.com/microsoft/TypeScript) can also be used to provide editor support for JavaScript programs. Here's an example:
 
 ```javascript
 function foo() {
@@ -44,7 +43,7 @@ function foo() {
 }
 ```
 
-However, type inference is not performed at the function level, which you can see in this example:
+However, the JavaScript language tooling provided by the TypeScript language server depends on type inference. It performs type inference within the body of a function, but not on the signatures of functions themselves, causing editor tooling to break down when doing function calls. Here's an example:
 
 ```javascript
 function foo() {
