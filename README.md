@@ -13,7 +13,28 @@ Typeless understand source code by running the automated tests that are part of 
 Typeless is currently in the design phase and can't be used. If you're interested in using it, please star the GitHub page or upvote the newspost that brought you here. If you want to comment on the Typeless specification and have no please to do so, please leave your comment in a GitHub issue. You can also create a pull request to suggest changes to the Typeless design.
 
 ## Why use JavaScript and Typeless when I can use TypeScript?
-Types in their simplest form, such as the type `number` or `string`, are easy to understand. However, as TypeScript applications get more complex so do the types required to describe them. The TypeScript handbook features a section called [Advanced types](https://www.typescriptlang.org/docs/handbook/advanced-types.html), which indeed can be used to write advanced types. Here's an example:
+Languages with type systems often provide some level of safety without asking the programmer to provide any type annotations. One scenario is when the programmer uses code from a library that already has type annotations, for example when using the `+` operator that's part of the JavaScript specification:
+```typescript
+function doesNotCompile() {
+  return true + 3;
+         ^^^^^^^^
+  // Operator '+' cannot be applied to types 'boolean' and 'number'.
+} 
+```
+
+Another situation in which programmers get safety for free is when type inference is performed, for example:
+```typescript
+function doesNotCompile() {
+  var person = { name: 'Remy' }
+  person.age
+         ^^^
+  // Property 'age' does not exist on type '{ name: string; }'
+}
+```
+
+However, type inference only works for part of the code, and the programmer has to write type annotations where it doesn't work, or otherwise risk losing the safety provided by types. For TypeScript, type annotations should be provided on all function signatures since there is no type inference on functions.
+
+As TypeScript applications get more complex so do the types required to describe them. The TypeScript handbook features a section called [Advanced types](https://www.typescriptlang.org/docs/handbook/advanced-types.html), which indeed can be used to write advanced types. Here's an example:
 
 ```typescript
 type MyType<TType extends keyof FooTypesMap = 'never'> = {
