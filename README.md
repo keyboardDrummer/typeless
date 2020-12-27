@@ -109,7 +109,7 @@ Inline errors for syntax errors work as they already do in existing JavaScript t
 
 ### What if the problem is not where the error was thrown?
 
-A function named `X` can be assigned a test by creating a parameterless function named `XTest`. Typeless assumes that as long as a function's test is passing, that function is `correct`. When a test fails while inside a call to a correct function, it concludes that the error was at the call site, not where the failure occurred. The error is then shown at the call site together with examples of arguments that can be passed to the function which are taken from the function's test.
+A function named `X` can be assigned a test by creating a parameterless function named `XTest`. Typeless assumes that as long as a function's test is passing, that function is *correct*. When a test fails while inside a call to a correct function, it concludes that the error was at the call site, not where the failure occurred. The error is then shown at the call site together with examples of arguments that can be passed to the function which are taken from the function's test.
 
 ```javascript
 function highLevelTest() {
@@ -198,12 +198,15 @@ The information provided by hover, code completion and function call help can be
 /**
  * Given a number n, computes the n'th fibonacci number.
  * 
- * @param n which fibonacci number to compute
+ * @param n the fibonacci number to compute
  * @return The n'th fibonacci number
  */
 function fibonacci(n) {
   n
-  // On hover over n, the documentation for n is shown together with example values 2 and 3.
+  // On hover over n, the documentation 'the fibonacci number to compute' is shown together with example values 2 and 3.
+  
+  n = 4 // When a variable is re-assigned, assigned documentation is copied from the current value to the new one.
+  // On hover over n, the documentation 'the fibonacci number to compute' is shown together with example value 43.
 }
 
 function fibonacciTest() {
@@ -221,7 +224,8 @@ function highLevelTest() {
 }
 ```
 
-Documentation remains attached to values when they traverse function boundaries:
+Documentation remains attached to values when they traverse function boundaries.
+
 ```javascript
 /**
  * @param name the name of the person
@@ -236,6 +240,18 @@ function PersonTest() {
   const remy = new Person("Remy", 32);
   remy.name
   // The hover tooltip over name shows the documentation 'the name of the person' as well as the value 'Remy'
+  
+  remy.name = "Elise"; // When an object member is re-assigned through the dot syntax, assigned documentation is copied from the current value to the new one.
+  // The hover tooltip over name shows the documentation 'the name of the person' as well as the value 'Elise'
+}
+```
+
+
+```javascript
+function reAssignment() {
+  var x; // Current value is 'undefined', to which the definition location is attached
+  x = 2; // Definition location is copied from 'undefined' to '2'
+  // Goto definition on x will jump to "x" in "var x";
 }
 ```
 
@@ -271,7 +287,7 @@ function travel() {
 }
 ```
 
-When a variable is reassigned the definition location is copied from the previous value to the new one.
+When a variable is reassigned the definition location is copied from the current value to the new one.
 
 ```javascript
 function reAssignment() {
