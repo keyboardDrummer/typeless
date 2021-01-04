@@ -1,8 +1,64 @@
-# Typeless: great editor tooling for JavaScript without types or annotations
+# Typeless: all the benefits of TypeScript, without the types
 
-An [LSP server](https://microsoft.github.io/language-server-protocol) is a program that can be used by an [IDE](https://en.wikipedia.org/wiki/Integrated_development_environment) to provide editing support for a programming language. Typeless is an LSP server for JavaScript that provides the same level of editor tooling for JavaScript as programmers get when using TypeScript. Unlike other editor tooling available for JavaScript, Typeless does not require annotations while working smoothly across function boundaries.
+Typeless provides the great editor tooling we're used to from TypeScript, but then for plain JavaScript. Typeless uses unit tests instead of type annotations to understand source code. Let's compare a Typeless program with its TypeScript equivalent. First the Typeless program:
 
-Typeless understand source code by running the automated tests that are part of that codebase. Typeless works well when programmers use test-driven development, while it does nothing for programs without tests. Editor tooling provided by Typeless includes:
+```javascript
+function pipeTest() {
+  const plusOneTimesTwoMinusOne = pipe(x => x + 1, x => x * 2, x => x - 1);
+  assert(1, plusOneTimesTwoMinusOne(0))
+  assert(3, plusOneTimesTwoMinusOne(1))
+}
+const pipe = (...fns) => p => fns.reduce((acc, cur) => cur(acc), p);
+// When typing 'fns.' code completion for arrays is shown.
+// When typing 'reduce(', examples arguments like 'x => x + 1' are shown. 
+// Hovering over cur, acc or p shows us the values these variables can get when running the test.
+
+function isNameOfEvenLengthTest() {
+  assert(true, isNameOfEvenLength({ name: "Remy" }))
+  assert(false, isNameOfEvenLength({ name: "Elise" }))
+}
+const isNameOfEvenLength = pipe(person => person.name, str => str.length, x => x % 2 == 0)
+// When typing 'pipe(', example arguments to pipe such as 'x => x + 1' are shown.
+// When typing 'person.', code completion suggests 'name'.
+// When typing 'str.', code completion for string members is shown.
+
+const isRemyEven = isNameOfEvenLength({ name: "Remy" })
+// Hovering over isRemyEven shows us that it can have the values 'true' and 'false'.
+```
+Note how in the above code the tests are written before the code under test. Test-driven development is needed for Typeless to work well.
+
+Now let's look at the TypeScript equivalent:
+
+```typescript
+type ArityOneFn = (arg: any) => any;
+type PickLastInTuple<T extends any[]> = T extends [...rest: infer U, argn: infer L ] ? L : never;
+
+const pipe = <T extends ArityOneFn[]>(...fns: T) => 
+  (p: Parameters<T[0]>[0]): ReturnType<PickLastInTuple<T>> => 
+  fns.reduce((acc: any, cur: ArityOneFn) => cur(acc), p);
+
+interface IPerson {
+  name: string
+}
+
+const isNameOfEvenLength = pipe((person: IPerson) => p.name, (str: string) => str.length, (x: number) => x % 2 == 0)
+const isRemyEven = isNameOfEvenLength({ name: "Remy" })
+// Hovering over isRemyEven shows us that it's a boolean value.
+```
+In case you had trouble reading some of the above, these articles explain most of the type-level features used in the above program:
+- [Never type](https://www.typescriptlang.org/docs/handbook/basic-types.html#never)
+- [Condtional types](https://www.typescriptlang.org/docs/handbook/advanced-types.html#conditional-types)
+- [Type inference in conditional types](https://www.typescriptlang.org/docs/handbook/advanced-types.html#type-inference-in-conditional-types)
+- [Variadic tuple types](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-4-0.html#variadic-tuple-types)
+- [Parameters type](https://www.typescriptlang.org/docs/handbook/utility-types.html#parameterstype)
+- [ReturnType type](https://www.typescriptlang.org/docs/handbook/utility-types.html#returntypetype)
+
+Comparing the above two programs we can see that the TypeScript version has a significant amount of type annotations and these annotations require the reader to understand complex type-specific language features. The Typeless version requires using test-driven development, but the programmer might have done that even if they were not using Typeless. Comparing TypeScript and Typeless is complicated, and the above example is just one example. However, we hope to have at least convinced the reader that while types have big benefits, they also come at a cost. A further comparison of the two approaches is found [here](#why-use-javascript-and-typeless-when-i-can-use-typescript). In case the reader wants to compare existing JavaScript tooling with Typeless, go [here](#why-not-use-the-javascript-support-in-typescripts-lsp-server).
+
+<!-- Pipe works better for Typeless than compose, since when writing pipe can already execute the function that executes first, since it's supplied first. -->
+
+### Features
+Editor tooling provided by Typeless includes:
 
 - Inline syntax and semantic errors
 - Code completion, variable hover tooltips and function call help
@@ -10,92 +66,10 @@ Typeless understand source code by running the automated tests that are part of 
 - Assisted rename refactoring
 
 ### Great, how do I get it?
-Typeless is currently in the design phase and can't be used. If you're interested in using it, please star the GitHub page or upvote the newspost that brought you here. If you want to comment on the Typeless specification and have no please to do so, please leave your comment in a GitHub issue. You can also create a pull request to suggest changes to the Typeless design.
+Typeless is currently in the design phase and can't be used. If you're interested in using it, please star the GitHub page or upvote the newspost that brought you here. If you want to comment on the Typeless specification and have no please to do so, please leave your comment in a GitHub issue. You can also create a pull request to suggest changes.
 
-## Why use JavaScript and Typeless when I can use TypeScript?
-Languages with type systems often provide some level of safety without asking the programmer to provide any type annotations. One scenario is when the programmer uses code from a library that already has type annotations, for example when using the `+` operator that's part of the JavaScript specification:
-```typescript
-function doesNotCompile() {
-  return true + 3;
-         ^^^^^^^^
-  // Operator '+' cannot be applied to types 'boolean' and 'number'.
-} 
-```
-
-Another situation in which programmers get safety for free is when type inference is performed, for example:
-```typescript
-function doesNotCompile() {
-  var person = { name: 'Remy' }
-  person.age
-         ^^^
-  // Property 'age' does not exist on type '{ name: string; }'
-}
-```
-
-However, type inference only works for part of the code, and the programmer has to write type annotations where it doesn't or otherwise risk losing the safety provided by types. For TypeScript, type annotations should be provided on all function signatures since there is no type inference on them.
-
-As TypeScript applications get more complex so do the types required to describe them. The TypeScript handbook features a section called [Advanced types](https://www.typescriptlang.org/docs/handbook/advanced-types.html), which indeed can be used to write advanced types. Here's an example:
-
-```typescript
-type MyType<TType extends keyof FooTypesMap = 'never'> = {
-    [k in keyof FooTypesMap]: {
-        foo: TType extends 'never' ? k : TType,
-        bar: FooTypesMap[TType extends 'never' ? k : TType],
-        baz?: MyType,
-        qux?: {
-            [key: string]: MyType
-        }
-    }
-}[keyof FooTypesMap]
-
-interface FooTypesMap {
-    never: never;
-    one: string;
-    two: boolean;
-    three: {
-        one: Date
-    };
-}
-```
-
-The type above has become a little program of its own, and understanding which values are part of this type requires mentally executing this type-level program. We want to offer programmers the opportunity to avoid doing such mental gymnastics and work with a type-free language.
-
-Conceptually, we view type-checking as a way of formally proving that a particular class of errors does not occur in a program. Because compilers are limited in the extend to which they can provide these proofs automatically, the programmer is often required to provide type annotations to help the compiler. For programmers who are not interested in providing formal correctness proofs of their program, we want to offer a typeless programming experience.
-
-## Why not use the JavaScript support in TypeScript's LSP server?
-The existing TypeScript language server that's included in [the TypeScript repository](https://github.com/microsoft/TypeScript) can also be used to provide editor support for JavaScript programs. Here's an example:
-
-```javascript
-function foo() {
-  var person = { name: Remy, age: 31 };
-  person.
-  // We get autocompletion for name and age after typing the dot
-
-  person.name
-  // Executing go to definition on "name" jumps to "name" in "{ name: Remy, age: 31 }";
-}
-```
-
-However, the JavaScript language tooling provided by the TypeScript language server depends on type inference. It performs type inference within the body of a function, but not on the signatures of functions themselves, causing editor tooling to break down when doing function calls. Here's an example:
-
-```javascript
-function foo() {
-  var person = { name: Remy, age: 31 };
-  usePerson(person)
-}
-
-function usePerson(person) {
-  person.
-  // After typing the dot, no semantic code completion is provided. There is only textual code completion based on what other identifiers occur in this file, for example 'person' is in the list.
-}
-```
-
-With type inference only working in parts of the program, type-based JavaScript editor tooling is not able to match TypeScript editor tooling.
-
-## How does Typeless work?
-Instead of requiring the programmer to write type annotations, Typeless requires them to write tests. Since programmers are already inclined to write tests, this may not be much of an burden. While the programmer is working, Typeless runs tests in the background to understand the program and provide editor tooling.
-
-Typeless recognizes tests by looking for parameterless functions whose name ends in 'Test'. Here's an example:
+# Tell me more
+Typeless runs unit tests to learn things about the source code under test, so without tests Typeless is useless. If a programmer wants Typeless support while they're developing their code, they should use test-driven development. Once written any code with good test coverage will get support from Typeless, whether it was written in a test-driven approach or not. Typeless recognizes tests by looking for parameterless functions whose name ends in 'Test'. Here's an example:
 
 ```javascript
 // The function 'fibonacciTest' is recognized as a test.
@@ -109,8 +83,6 @@ function fibonacci(n) {
   return fibonacci(n-1) + fibonnacci(n-2);
 }
 ```
-
-# Examples of editing support by Typeless
 
 ## Inline errors
 
@@ -132,7 +104,7 @@ Inline errors for syntax errors work as they already do in existing JavaScript t
 
 ### What if the problem is not where the error was thrown?
 
-A function named `X` can be assigned a test by creating a parameterless function named `XTest`. Typeless assumes that as long as a function's test is passing, that function is *correct*. When a test fails while inside a call to a correct function, it concludes that the error was at the call site, not where the failure occurred. The error is then shown at the call site together with examples of arguments that can be passed to the function which are taken from the function's test.
+A function named `X` can be assigned a test by creating a parameterless function named `XTest`. Typeless assumes that as long as a function's test is passing, that function is *correct*. When a test fails while inside a call to a correct function, it concludes that the error was at the call site, not where the failure occurred. The error is then shown at the call site together with examples of arguments that can be passed to the function, which are taken from the function's test.
 
 ```javascript
 function highLevelTest() {
@@ -205,7 +177,7 @@ function foo(value) {
 To inspect the value of `favoriteColors` in the above example, the programmer would need to write the expression `value.favoriteColors` somewhere.
 
 If an object has a __proto__ field containing a named constructor, then the constructor name is shown before the objects opening brace:
-```
+```javascript
 class Animal { constructor(age) { this.age = age; } }
 
 function foo() {
@@ -228,8 +200,8 @@ function fibonacci(n) {
   n
   // On hover over n, the documentation 'the fibonacci number to compute' is shown together with example values 2 and 3.
   
-  n = 4 // When a variable is re-assigned, assigned documentation is copied from the current value to the new one.
-  // On hover over n, the documentation 'the fibonacci number to compute' is shown together with example value 43.
+  n = 4
+  // On hover over n, the documentation 'the fibonacci number to compute' is shown together with example value 4.
 }
 
 function fibonacciTest() {
@@ -264,26 +236,25 @@ function PersonTest() {
   remy.name
   // The hover tooltip over name shows the documentation 'the name of the person' as well as the value 'Remy'
   
-  remy.name = "Elise"; // When an object member is re-assigned through the dot syntax, assigned documentation is copied from the current value to the new one.
+  remy.name = "Elise";
   // The hover tooltip over name shows the documentation 'the name of the person' as well as the value 'Elise'
+
+  remy["name"] = "Jacques";
+  remy.name
+  // The hover tooltip over name shows the value 'Jacques', but no documentation.
 }
 ```
 
+We can summarize some of what the above examples show by stating that documentation is carried together with values. If a variable is re-assigned, then documentation on the existing value is copied to the new value.
 
-```javascript
-function reAssignment() {
-  var x; // Current value is 'undefined', to which the definition location is attached
-  x = 2; // Definition location is copied from 'undefined' to '2'
-  // Goto definition on x will jump to "x" in "var x";
-}
-```
+<!-- When is the documentation first assigned? When the function is called? How to we prevent from changing documentation on the caller side value that was passed to the function? Should be fine -->
 
 ## Go to definition
 Typeless considers the following statements as definitions:
 - a variable defined with `var`, `let` or `const`. 
 - a named function defined with `function`
-- an object that is assigned a member which it did not have yet through the dot syntax.
-- a member in an object literal.
+- an object that is assigned a member which it did not have yet through the dot syntax: `var obj = {}; obj.fresh = 0`
+- a member in an object literal: `var obj = { def: "bar" }`
 - a module exporting a member.
 
 Note that if an object is assigned a new member through the bracket syntax, such as `remy['age'] = 32`, that is not considered a definition.
@@ -458,8 +429,173 @@ function fibonacci(x) {
 }
 ```
 
-# Out of scope
+# FAQ
+
+## Why use JavaScript and Typeless when I can use TypeScript?
+Languages with type systems often provide some level of safety without asking the programmer to provide any type annotations. One scenario is when the programmer uses code from a library that already has type annotations, for example when using the `+` operator that's part of the JavaScript specification:
+```typescript
+function doesNotCompile() {
+  return true + 3;
+         ^^^^^^^^
+  // Operator '+' cannot be applied to types 'boolean' and 'number'.
+} 
+```
+
+Another situation in which programmers get safety for free is when type inference is performed, for example:
+```typescript
+function doesNotCompile() {
+  var person = { name: 'Remy' }
+  person.age
+         ^^^
+  // Property 'age' does not exist on type '{ name: string; }'
+}
+```
+
+However, type inference only works for part of the code, and the programmer has to write type annotations where it doesn't or otherwise risk losing the safety provided by types. For TypeScript, type annotations should be provided on all function signatures since there is no type inference on them.
+
+As TypeScript applications get more complex so do the types required to describe them. The TypeScript handbook features a section called [Advanced types](https://www.typescriptlang.org/docs/handbook/advanced-types.html), which indeed can be used to write advanced types. Here's an example:
+
+```typescript
+type MyType<TType extends keyof FooTypesMap = 'never'> = {
+    [k in keyof FooTypesMap]: {
+        foo: TType extends 'never' ? k : TType,
+        bar: FooTypesMap[TType extends 'never' ? k : TType],
+        baz?: MyType,
+        qux?: {
+            [key: string]: MyType
+        }
+    }
+}[keyof FooTypesMap]
+
+interface FooTypesMap {
+    never: never;
+    one: string;
+    two: boolean;
+    three: {
+        one: Date
+    };
+}
+```
+
+The type above has become a little program of its own, and understanding which values are part of this type requires mentally executing this type-level program. We want to offer programmers the opportunity to avoid doing such mental gymnastics and work with a type-free language.
+
+Conceptually, we view type-checking as a way of formally proving that a particular class of errors does not occur in a program. Because compilers are limited in the extend to which they can provide these proofs automatically, the programmer is often required to provide type annotations to help the compiler. For programmers who are not interested in providing formal correctness proofs of their program, we want to offer a typeless programming experience.
+
+## I use types to design my program, does that mean Typeless is not for me?
+
+Defining what data structures your program will work with is an important step in the development process. In Typeless, you can define your data structures by writing their constructors.
+
+Consider the following TypeScript program:
+
+```typescript
+interface List<T> { }
+class Node<T> extends List<T> {
+  head: T;
+  tail: List<T>;
+
+  constructor(head: T, tail: List<T>) {
+    this.head = head;
+    this.tail = tail;
+  }
+}
+class Nil extends List<never> {
+}
+const nil = new Nil();
+```
+
+And the Typeless equivalent:
+
+```javascript
+function NodeConstructorTest() {
+  new Node(3, new Node("hello", nil));
+}
+
+class Node {
+  constructor(head, tail) {
+    this.head = head;
+    this.tail = tail;
+  }
+}
+
+const nil = {};
+```
+
+Note the Typeless program uses fewer concepts: there are no generics, no interfaces, no class inheritance and no `never` type. However, the Typeless program is more ambiguous about what values may be passed to the Node constructor. A seasoned Typeless programmer may opt to use generators to remove that ambiguity by writing the following test:
+
+```javascript
+function NodeConstructorTest() {
+  let listGenerator;
+  const nodeGenerator = generators.new(() => new Node(generators.value.pop(), listGenerator.pop()));
+  listGenerator = generators.any(nil, nodeGenerator)
+  nodeGenerator.pop();
+}
+```
+
+The above test requires knowledge of generators. We believe using generators to define data structures has two advantages over using types:
+- It requires fewer concepts.
+- Generators can also be used to write powerful tests.
+
+We can showcase the last argument by adding a `length` method to the Node class and writing a test for it:
+
+```javascript
+function NodeLengthTest() {
+  const tail = listGenerator.pop();
+  const node = new Node(undefined, tail);
+  assert(node.length, tail.length + 1)
+}
+
+class Node {
+  constructor(head, tail) { .. }
+
+  length() { return 1 + tail.length }
+}
+
+const nil = { 
+  length: () => 0;
+};
+```
+
+## Why not use the JavaScript support in TypeScript's LSP server instead of Typeless?
+The existing TypeScript language server that's included in [the TypeScript repository](https://github.com/microsoft/TypeScript) can also be used to provide editor support for JavaScript programs. Here's an example:
+
+```javascript
+function foo() {
+  var person = { name: Remy, age: 31 };
+  person.
+  // We get autocompletion for name and age after typing the dot
+
+  person.name
+  // Executing go to definition on "name" jumps to "name" in "{ name: Remy, age: 31 }";
+}
+```
+
+However, the JavaScript language tooling provided by the TypeScript language server depends on type inference. It performs type inference within the body of a function, but not on the signatures of functions themselves, causing editor tooling to break down when doing function calls. Here's an example:
+
+```javascript
+function foo() {
+  var person = { name: Remy, age: 31 };
+  usePerson(person)
+}
+
+function usePerson(person) {
+  person.
+  // After typing the dot, no semantic code completion is provided. There is only textual code completion based on what other identifiers occur in this file, for example 'person' is in the list.
+}
+```
+
+With type inference only working in parts of the program, type-based JavaScript editor tooling is not able to match TypeScript editor tooling.
+
+## Are there editor tooling features that Typeless does not implement?
+
+There are particular programming concepts that only occur in typed languages, so there is no meaningful editor tooling that Typescript can implement for these.
 
 The following editor tooling features provided by the LSP protocol are not implemented:
-- textdocument/implementation does not apply
-- textdocument/declaration does not apply
+- textdocument/implementation and textdocument/declaration do not apply since Typeless does not have abstract or virtual functions
+
+<!--  
+References:
+Exercise in using advanced types: https://manrueda.dev/blog/typescript-complex-types/
+TypeScript advanced types manual: https://www.typescriptlang.org/docs/handbook/advanced-types.html
+Last function in type world: https://stackoverflow.com/questions/56368755/typescript-get-the-type-of-the-last-parameter-of-a-function-type
+Compose type: https://minaluke.medium.com/typescript-compose-function-b7512a7cc012
+-->
