@@ -10,8 +10,8 @@ function pipeTest() {
 }
 const pipe = (...fns) => p => fns.reduce((acc, cur) => cur(acc), p);
 // When typing 'fns.' code completion for arrays is shown.
-// When typing 'reduce(', examples arguments like 'x => x + 1' are shown. 
-// Hovering over cur, acc or p shows us the values these variables can get when running the test.
+// When typing 'reduce(', example arguments like 'x => x + 1' are shown. 
+// Hovering over 'cur', 'acc' or 'p' shows us the values these variables can get when running the test.
 
 function isNameOfEvenLengthTest() {
   assert(true, isNameOfEvenLength({ name: "Remy" }))
@@ -53,7 +53,9 @@ In case you had trouble reading some of the above, these articles explain most o
 - [Parameters type](https://www.typescriptlang.org/docs/handbook/utility-types.html#parameterstype)
 - [ReturnType type](https://www.typescriptlang.org/docs/handbook/utility-types.html#returntypetype)
 
-Comparing the above two programs we can see that the TypeScript version has a significant amount of type annotations and these annotations require the reader to understand complex type-specific language features. The Typeless version requires using test-driven development, but the programmer might have done that even if they were not using Typeless. Comparing TypeScript and Typeless is complicated, and the above example is just one example. However, we hope to have at least convinced the reader that while types have big benefits, they also come at a cost. A further comparison of the two approaches is found [here](#why-use-javascript-and-typeless-when-i-can-use-typescript). In case the reader wants to compare existing JavaScript tooling with Typeless, go [here](#why-not-use-the-javascript-support-in-typescripts-lsp-server).
+Comparing the above two programs, we can see that the TypeScript version has a significant amount of type annotations and these annotations require the reader to understand complex type-specific language features. The Typeless version requires using test-driven development, but the programmer might have done that even if they were not using Typeless. 
+
+Comparing TypeScript and Typeless is complicated, and the above example is just one example. However, we hope to have at least convinced the reader that while types have big benefits, they also come at a cost. A further comparison of the two approaches is found [here](#why-use-javascript-and-typeless-when-i-can-use-typescript). We discuss what Typeless adds on top of existing JavaScript tooling [here](#why-not-use-the-javascript-support-in-typescripts-lsp-server).
 
 <!-- Pipe works better for Typeless than compose, since when writing pipe can already execute the function that executes first, since it's supplied first. -->
 
@@ -65,10 +67,10 @@ Editor tooling provided by Typeless includes:
 - Code navigation such as go to definition and find references
 - Assisted rename refactoring
 
-### Great, how do I get it?
+### How do I get it?
 Typeless is currently in the design phase and can't be used. If you're interested in using it, please star the GitHub page or upvote the newspost that brought you here. If you want to comment on the Typeless specification and have no please to do so, please leave your comment in a GitHub issue. You can also create a pull request to suggest changes.
 
-# Tell me more
+# How do I use Typeless?
 Typeless runs unit tests to learn things about the source code under test, so without tests Typeless is useless. If a programmer wants Typeless support while they're developing their code, they should use test-driven development. Once written any code with good test coverage will get support from Typeless, whether it was written in a test-driven approach or not. Typeless recognizes tests by looking for parameterless functions whose name ends in 'Test'. Here's an example:
 
 ```javascript
