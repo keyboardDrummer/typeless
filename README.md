@@ -161,7 +161,7 @@ function fibonacci(n) {
 
 function fibonacciUser() {
   fibonacci(
-  // After the opening paranthesis, Typeless will suggest two options for calling fibonacci, one passing 2 and one passing 3.
+  // After the opening paranthesis, Typeless will suggest calling fibonacci with either 2 or 3.
 }
 ```
 
@@ -188,7 +188,7 @@ function foo() {
 }
 ```
 
-### Documentation
+## Documentation
 The information provided by hover, code completion and function call help can be enhanced by adding documentation to the program. You can do this using JSDoc comments.
 
 ```javascript
@@ -200,7 +200,7 @@ The information provided by hover, code completion and function call help can be
  */
 function fibonacci(n) {
   n
-  // On hover over n, the documentation 'the fibonacci number to compute' is shown together with example values 2 and 3.
+  // On hover, the documentation 'the fibonacci number to compute' is shown together with example values 2 and 3.
   
   n = 4
   // On hover over n, the documentation 'the fibonacci number to compute' is shown together with example value 4.
@@ -483,7 +483,7 @@ The type above has become a little program of its own, and understanding which v
 
 Conceptually, we view type-checking as a way of formally proving that a particular class of errors does not occur in a program. Because compilers are limited in the extend to which they can provide these proofs automatically, the programmer is often required to provide type annotations to help the compiler. For programmers who are not interested in providing formal correctness proofs of their program, we want to offer a typeless programming experience.
 
-## I use types to design my program, does that mean Typeless is not for me?
+## I write types to design my program. Does that mean Typeless is not for me?
 
 Defining what data structures your program will work with is an important step in the development process. In Typeless, you can define your data structures by writing their constructors.
 
@@ -581,7 +581,9 @@ function foo() {
 
 function usePerson(person) {
   person.
-  // After typing the dot, no semantic code completion is provided. There is only textual code completion based on what other identifiers occur in this file, for example 'person' is in the list.
+  // After typing the dot, no semantic code completion is provided. 
+  // There is only textual code completion based on what other identifiers occur in this file, 
+  // for example 'person' is in the list.
 }
 ```
 
