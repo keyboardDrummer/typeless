@@ -55,7 +55,7 @@ In case you had trouble reading some of the above, these articles explain most o
 
 Comparing the above two programs, we can see that the TypeScript version has a significant amount of type annotations and these annotations require the reader to understand complex type-specific language features. The Typeless version requires using test-driven development, but the programmer might have done that even if they were not using Typeless. 
 
-Comparing TypeScript and Typeless is complicated, and the above example is just one example. However, we hope to have at least convinced the reader that while types have big benefits, they also come at a cost. A further comparison of the two approaches is found [here](#why-use-javascript-and-typeless-when-i-can-use-typescript). We discuss what Typeless adds on top of existing JavaScript tooling [here](#why-not-use-the-javascript-support-in-typescripts-lsp-server).
+Comparing TypeScript and Typeless is complicated, and the above example is just one example. However, we hope to have convinced the reader that while types have big benefits, they also come at a cost. A further comparison of the two approaches is found [here](#why-use-javascript-and-typeless-when-i-can-use-typescript). We discuss what Typeless adds on top of existing JavaScript tooling [here](#why-not-use-the-javascript-support-in-typescripts-lsp-server).
 
 <!-- Pipe works better for Typeless than compose, since when writing pipe can already execute the function that executes first, since it's supplied first. -->
 
