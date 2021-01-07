@@ -55,7 +55,7 @@ In case you had trouble reading some of the above, these articles explain most o
 
 Comparing the above two programs, we can see that the TypeScript version has a significant amount of type annotations and these annotations require the reader to understand complex type-specific language features. The Typeless version requires using test-driven development, but the programmer might have done that even if they were not using Typeless. 
 
-Comparing TypeScript and Typeless is complicated, and the above example is just one example. However, we hope to have convinced the reader that while types have big benefits, they also come at a cost. A further comparison of the two approaches is found [here](#why-use-javascript-and-typeless-when-i-can-use-typescript). We discuss what Typeless adds on top of existing JavaScript tooling [here](#why-not-use-the-javascript-support-in-typescripts-lsp-server).
+Comparing TypeScript and Typeless is complicated, and the above example is just one example. However, we hope to have convinced the reader that while types have big benefits, they also come at a cost. A further comparison of the two approaches is found [here](#why-use-javascript-and-typeless-when-i-can-use-typescript). In case you're a developer who prefers JavaScript over TypeScript, we discuss what Typeless adds on top of existing JavaScript tooling [here](#why-not-use-the-javascript-support-in-typescripts-lsp-server).
 
 <!-- Pipe works better for Typeless than compose, since when writing pipe can already execute the function that executes first, since it's supplied first. -->
 
@@ -71,7 +71,9 @@ Editor tooling provided by Typeless includes:
 Typeless is currently in the design phase and can't be used. If you're interested in using it, please star the GitHub page or upvote the newspost that brought you here. If you want to comment on the Typeless specification and have no please to do so, please leave your comment in a GitHub issue. You can also create a pull request to suggest changes.
 
 # How do I use Typeless?
-Typeless runs unit tests to learn things about the source code under test, so without tests Typeless is useless. If a programmer wants Typeless support while they're developing their code, they should use test-driven development. Once written any code with good test coverage will get support from Typeless, whether it was written in a test-driven approach or not. Typeless recognizes tests by looking for parameterless functions whose name ends in 'Test'. Here's an example:
+Typeless runs unit tests to learn things about the source code under test, so without tests Typeless is useless. To get Typeless support while writing code, developers should use test-driven development. Once written, any code with good test coverage will get support from Typeless, whether it was written in a test-driven approach or not. 
+
+Typeless recognizes tests by looking for parameterless functions whose name ends in 'Test'. Here's an example:
 
 ```javascript
 // The function 'fibonacciTest' is recognized as a test.
@@ -387,16 +389,9 @@ function Person(name) {
 ```
 
 ## Generators
-Generators can be used to supercharge your tests. Generators are used to generate different test values to find edge cases in your code. The editor tooling will use your generators to generate different test values in the background while you're programming. When an interesting edge case is found, the editor tooling will suggest to explicitly add this value to your code so that it's always tested against when building your program.
-
-The specification of generators is still a work in progress. Below is an example of what it might look like:
+Generators can be used to supercharge your tests. Generators are used to generate different input values to find edge cases in your code. Here's an example:
 
 ```javascript
-function fibonaccisTest() {
-  const n = generators.naturalNumbers.pop()
-  assert.equal(fibonacciFast(n), fibonacciSlow(n));
-}
-
 function fibonacciSlow(n) {
   if (n < 2) return 1;
   return fibonacciSlow(n-1) + fibonacciSlow(n-2);
@@ -408,10 +403,19 @@ function fibonacciFast(n) {
 
 function fibonacciFastHelper(n) {
   if (n < 2) return [1, 1];
-  const [two, one] = fibonacciFast(n-1);
-  return [one, one + two];
+  // Implementation is missing.
+  // const [two, one] = fibonacciFast(n-1);
+  // return [one, one + two];
 }
-```
+
+@seed(0, 2)
+function fibonacciFastTest() {
+  const n = generators.naturalNumbers.pop()
+  assert.equal(fibonacciFast(n), fibonacciSlow(n));
+}
+``` 
+
+Typeless runs the test `fibonacciFastTest` with different random seeds which in turn produce different values of `n`. Typeless records which random seeds execute which lines of code and which cause the test to fail. In the above code, Typeless discovers that the random seeds `0` covers specific lines, and that the seed `2` covers other lines and also fails the test. Typeless will suggest adding the decorator `@seed(0,2)` above the test `fibonacciFastTest` so that when Typeless is ran purely as a test engine, likely as part of a build step, it runs the test with those seed values.
 
 ## Strict mode
   
