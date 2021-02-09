@@ -10,12 +10,42 @@ case class BooleanLiteral(range: OffsetPointerRange, value: Boolean) extends Exp
   override def evaluate(context: Context): ExpressionResult = ???
 }
 
+case class StringValue(value: String) extends Value {
+  override def represent(): String = value
+}
+
 case class StringLiteral(range: OffsetPointerRange, value: String) extends Expression {
-  override def evaluate(context: Context): ExpressionResult = ???
+  override def evaluate(context: Context): ExpressionResult = {
+    StringValue(value)
+  }
 }
 
 case class ObjectLiteral(range: OffsetPointerRange, members: ListMap[String, Expression]) extends Expression {
   override def evaluate(context: Context): ExpressionResult = ???
+}
+
+case class ThisReference(range: OffsetPointerRange) extends Expression {
+  override def evaluate(context: Context): ExpressionResult = {
+    context.getThis()
+  }
+}
+
+// Let's also use this for variable assignment
+case class MemberAssignment(range: OffsetPointerRange, target: Expression, name: String, value: Expression) extends Expression {
+  override def evaluate(context: Context): ExpressionResult = {
+    val targetResult = context.evaluateExpression(target)
+    targetResult match {
+      case targetValue: Value =>
+        val valueResult = context.evaluateExpression(value)
+        valueResult match {
+          case valueValue: Value =>
+            targetValue.setMember(name, valueValue)
+            valueValue
+          case e => e
+        }
+      case e: ExceptionResult => e
+    }
+  }
 }
 
 case class MemberAccess(range: OffsetPointerRange, target: Expression, name: String) extends Expression {
@@ -32,7 +62,6 @@ case class MemberAccess(range: OffsetPointerRange, target: Expression, name: Str
             }
         }
       case e: ExceptionResult => e
-
     }
   }
 }
@@ -102,12 +131,19 @@ trait BinaryExpression extends Expression {
   def left: Expression
   def right: Expression
 
-  def evaluate(context: Context, leftValue: ExpressionResult, rightValue: ExpressionResult): ExpressionResult
+  def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult
 
   override def evaluate(context: Context): ExpressionResult = {
-    val leftValue = context.evaluateExpression(left)
-    val rightValue = context.evaluateExpression(right)
-    evaluate(context, leftValue, rightValue)
+    val leftResult = context.evaluateExpression(left)
+    leftResult match {
+      case leftValue: Value =>
+        val rightResult = context.evaluateExpression(right)
+        rightResult match {
+          case rightValue: Value => evaluate(context, leftValue, rightValue)
+          case _ => rightResult
+        }
+      case _ => leftResult
+    }
   }
 }
 
@@ -116,23 +152,57 @@ case class WholeNumber(range: OffsetPointerRange, int: Int) extends Expression {
 }
 
 case class Modulo(range: OffsetPointerRange, left: Expression, right: Expression) extends BinaryExpression {
-  override def evaluate(context: Context, leftValue: ExpressionResult, rightValue: ExpressionResult): ExpressionResult = ???
+  override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = ???
 }
 case class Subtraction(range: OffsetPointerRange, left: Expression, right: Expression) extends BinaryExpression {
-  override def evaluate(context: Context, leftValue: ExpressionResult, rightValue: ExpressionResult): ExpressionResult = ???
+  override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = ???
+}
+
+case class BooleanValue(value: Boolean) extends Value {
+
 }
 case class Equals(range: OffsetPointerRange, left: Expression, right: Expression) extends BinaryExpression {
-  override def evaluate(context: Context, leftValue: ExpressionResult, rightValue: ExpressionResult): ExpressionResult = ???
+  override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = {
+    BooleanValue(Value.strictEqual(leftValue, rightValue))
+  }
 }
+
 case class Multiplication(range: OffsetPointerRange, left: Expression, right: Expression) extends BinaryExpression {
-  override def evaluate(context: Context, leftValue: ExpressionResult, rightValue: ExpressionResult): ExpressionResult = ???
+  override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = ???
 }
 case class Addition(range: OffsetPointerRange, left: Expression, right: Expression) extends BinaryExpression {
-  override def evaluate(context: Context,
-                        leftValue: ExpressionResult, rightValue: ExpressionResult): ExpressionResult = {
+  override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = {
     (leftValue, rightValue) match {
       case (leftInt: IntValue, rightInt: IntValue) => new IntValue(leftInt.value + rightInt.value)
       case _ => ???
+    }
+  }
+}
+
+case class New(range: OffsetPointerRange, target: Expression, arguments: Vector[Expression]) extends Expression {
+  override def evaluate(context: Context): ExpressionResult = {
+    val targetResult = context.evaluateExpression(target)
+
+    val argumentResults = arguments.map(argument => context.evaluateExpression(argument))
+    val argumentValues = mutable.ArrayBuffer.empty[Value]
+    for(argumentResult <- argumentResults) {
+      argumentResult match {
+        case argumentValue: Value => argumentValues.addOne(argumentValue)
+        case _ => return argumentResult
+      }
+    }
+    targetResult match {
+      case closure: ClosureLike =>
+        // TODO, assing __proto__ field from closure.prototype
+        val newObj = new ObjectValue()
+        context.setThis(newObj)
+        closure.evaluate(context, argumentValues) match {
+          case _: UndefinedValue => newObj
+          case result => result
+        }
+      case targetValue: Value =>
+        TypeError(target, "closure", targetValue)
+      case _ => targetResult
     }
   }
 }
@@ -152,6 +222,7 @@ case class Lambda(range: OffsetPointerRange, arguments: Vector[Argument], body: 
 }
 
 case class Closure(lambda: Lambda, state: Scope) extends ClosureLike {
+
   def evaluate(context: Context, argumentValues: collection.Seq[Value]): ExpressionResult = {
     val newContext = context.withState(state.nest())
     lambda.arguments.zip(argumentValues).foreach(t => {

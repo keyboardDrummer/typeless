@@ -1,5 +1,4 @@
 import miksilo.editorParser.parsers.SourceElement
-import miksilo.editorParser.parsers.editorParsers.OffsetPointerRange
 import miksilo.languageServer.core.language.{Phase, SourcePathFromElement}
 import miksilo.languageServer.core.smarts.FileDiagnostic
 import miksilo.lspprotocol.lsp.Diagnostic
@@ -44,18 +43,22 @@ case class TypeError(element: SourceElement, expected: String, value: Value) ext
   override def message: String = s"Expected value of type $expected but got '${value.represent()}'"
 }
 
+
 class IntValue(val value: Int) extends Value {
   override def represent(): String = value.toString
 }
 
 class UndefinedValue extends Value {
-
 }
 
 class ObjectValue(var members: mutable.Map[String, Value] = mutable.Map.empty) extends Value {
 
   override def getMember(name: String): Option[Value] = {
     members.get(name)
+  }
+
+  override def setMember(name: String, value: Value) = {
+    members.put(name, value)
   }
 
   override def represent(): String = "Object"
@@ -74,9 +77,11 @@ object Value {
   }
 }
 
-class Value extends ExpressionResult {
 
+trait Value extends ExpressionResult {
   def getMember(name: String): Option[Value] = None
+  def setMember(name: String, value: Value): Unit =
+    ???
 
   var definedAt: Option[SourceElement] = None
   var createdAt: SourceElement = null
@@ -93,8 +98,15 @@ class Context(val allowUndefinedPropertyAccess: Boolean,
               throwAtElementResult: Option[SourceElement] = None,
               val state: Scope = new Scope()) {
 
+  var _this: ObjectValue = null
+
+  def setThis(value: ObjectValue): Unit = _this = value
+  def getThis(): ObjectValue = _this
+
   def withState(state: Scope): Context = {
-    new Context(allowUndefinedPropertyAccess, state = state)
+    val result = new Context(allowUndefinedPropertyAccess, state = state)
+    result.setThis(_this)
+    result
   }
 
   def get(element: SourceElement, name: String): ExpressionResult = state.get(element, name)

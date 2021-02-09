@@ -89,10 +89,28 @@ class ExampleExpressionLanguageTest extends AnyFunSuite with LanguageServerTest 
         |
         |const square = (x) => {
         |  return x + x;
-        |  // The value 9 was expected but it was 6, with a link to the assert.equal that caused this error.
+        |  // The value 9 was expected but it was 6, with a link to the assert.strictEqual that caused this error.
         |}
         |""".stripMargin
+    // TODO add a related location to the Diagnostic
     val expected = Seq(Diagnostic(SourceRange(HumanPosition(8, 10), HumanPosition(8, 15)), Some(1), "The value '9' was expected but it was '6'."))
+    val diagnostics = getDiagnostics(server, program)
+    assertResult(expected)(diagnostics)
+  }
+
+  test("validating values from object members") {
+    val program =
+      """const nameTest = () => {
+        |  assert.strictEqual(new Person("Remy").name, "Remy");
+        |}
+        |
+        |const Person = (name) => {
+        |  this.name = "Elise";
+        |  // The value "Remy" was expected but it was "Elise".
+        |}
+        |""".stripMargin
+
+    val expected = Seq(Diagnostic(SourceRange(HumanPosition(6, 15), HumanPosition(6, 22)), Some(1), "The value 'Remy' was expected but it was 'Elise'."))
     val diagnostics = getDiagnostics(server, program)
     assertResult(expected)(diagnostics)
   }
