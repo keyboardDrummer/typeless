@@ -56,4 +56,44 @@ class ExampleExpressionLanguageTest extends AnyFunSuite with LanguageServerTest 
     val diagnostics = getDiagnostics(server, program)
     assertResult(expected)(diagnostics)
   }
+
+  test("problem in calling function") {
+    val program =
+      """function highLevelTest() {
+        |  fibonacci("hello");
+        |  // The value "hello" passed to fibonacci is not valid. Examples of valid values are: 2, 3
+        |}
+        |
+        |function fibonacciTest() {
+        |  assert(fibonacci(2) == 3)
+        |  assert(fibonacci(3) == 5)
+        |}
+        |
+        |function fibonacci(n) {
+        |  if (n < 2) return 1;
+        |  return fibonacci(n-1) + fibonacci(n-2);
+        |}
+        |""".stripMargin
+    val expected = Seq(Diagnostic(SourceRange(HumanPosition(8, 10), HumanPosition(8, 15)), Some(1), "The member 'foo' is not available on value '3'"))
+    val diagnostics = getDiagnostics(server, program)
+    assertResult(expected)(diagnostics)
+  }
+
+  test("validating values") {
+    val program =
+      """const squareTest = () => {
+        |  assert.strictEqual(square(2), 4);
+        |  assert.strictEqual(square(3), 9);
+        |  // Related location for the error below.
+        |}
+        |
+        |const square = (x) => {
+        |  return x + x;
+        |  // The value 9 was expected but it was 6, with a link to the assert.equal that caused this error.
+        |}
+        |""".stripMargin
+    val expected = Seq(Diagnostic(SourceRange(HumanPosition(8, 10), HumanPosition(8, 15)), Some(1), "The value '9' was expected but it was '6'."))
+    val diagnostics = getDiagnostics(server, program)
+    assertResult(expected)(diagnostics)
+  }
 }

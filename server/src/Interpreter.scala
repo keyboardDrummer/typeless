@@ -41,10 +41,10 @@ case class ReferenceError(element: SourceElement, name: String) extends Catchabl
   override def message: String = s"Variable $name was accessed but is not defined"
 }
 case class TypeError(element: SourceElement, expected: String, value: Value) extends CatchableExceptionResult {
-  override def message: String = s"Expected value of typed $expected but got ${value.represent()}"
+  override def message: String = s"Expected value of type $expected but got '${value.represent()}'"
 }
 
-class IntValue(value: Int) extends Value {
+class IntValue(val value: Int) extends Value {
   override def represent(): String = value.toString
 }
 
@@ -52,10 +52,25 @@ class UndefinedValue extends Value {
 
 }
 
-class ObjectValue(var members: Map[String, Value] = Map.empty) extends Value {
+class ObjectValue(var members: mutable.Map[String, Value] = mutable.Map.empty) extends Value {
 
   override def getMember(name: String): Option[Value] = {
     members.get(name)
+  }
+
+  override def represent(): String = "Object"
+}
+
+object Value {
+  def strictEqual(first: Value, second: Value): Boolean = {
+    if (first == second)
+      return true
+
+    (first, second) match {
+      case (firstInt: IntValue, secondInt: IntValue) if firstInt.value == secondInt.value => true
+      case _ => false
+    }
+
   }
 }
 
@@ -76,9 +91,9 @@ object Void extends StatementResult {
 
 class Context(val allowUndefinedPropertyAccess: Boolean,
               throwAtElementResult: Option[SourceElement] = None,
-              val state: State = new State()) {
+              val state: Scope = new Scope()) {
 
-  def withState(state: State): Context = {
+  def withState(state: Scope): Context = {
     new Context(allowUndefinedPropertyAccess, state = state)
   }
 
@@ -98,7 +113,7 @@ class Context(val allowUndefinedPropertyAccess: Boolean,
   def evaluateExpression(expression: Expression): ExpressionResult = {
     val result = expression.evaluate(this)
     result match {
-      case value: Value => value.createdAt = expression
+      case value: Value if value.createdAt == null => value.createdAt = expression
       case _ =>
     }
     result
@@ -117,42 +132,39 @@ class Context(val allowUndefinedPropertyAccess: Boolean,
   }
 }
 
-class State {
+class Scope(parentOption: Option[Scope] = None) {
 
-  var environment: List[mutable.HashMap[String, Value]] = List(mutable.HashMap.empty)
+  def nest(): Scope = new Scope(Some(this))
+
+  var environment: mutable.HashMap[String, Value] = mutable.HashMap.empty
 
   def declare(name: String, value: Value): Unit = {
-    if (environment.head.contains(name)) {
+    if (environment.contains(name)) {
       ???
     }
-    environment.head.put(name, value)
+    environment.put(name, value)
   }
 
   def assign(name: String, value: Value): Unit = {
-    for(layer <- environment) {
-      if (layer.contains(name)) {
-        layer.put(name, value)
-      } else {
-        ???
-      }
+    if (environment.contains(name)) {
+      environment.put(name, value)
+    } else {
+      parentOption.fold(???)(parent => parent.assign(name, value))
     }
   }
 
   def get(element: SourceElement, name: String): ExpressionResult = {
-    for(layer <- environment) {
-      layer.get(name) match {
-        case Some(value) => return value
-        case _ =>
-      }
-    }
-    ReferenceError(element, name)
+    environment.getOrElse[ExpressionResult](name, {
+      parentOption.fold[ExpressionResult](ReferenceError(element, name))(parent => parent.get(element, name))
+    })
   }
 }
 
 object InterpreterPhase {
   val phase = Phase("interpreter", "where the interpreting happens", compilation => {
     val program = compilation.program.asInstanceOf[SourcePathFromElement].sourceElement.asInstanceOf[JavaScriptFile]
-    val context = new Context(false)
+    val defaultState = StandardLibrary.createState()
+    val context = new Context(false, state = defaultState)
     val result = program.evaluate(context)
     result match {
       case e: ExceptionResult =>
@@ -160,7 +172,7 @@ object InterpreterPhase {
       case _ =>
     }
 
-    val rootEnvironment = context.state.environment.head
+    val rootEnvironment = context.state.environment
     val tests = rootEnvironment.filter(s => {
       if (!s._1.endsWith("Test")) {
         false

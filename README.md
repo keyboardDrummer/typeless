@@ -118,13 +118,13 @@ function highLevelTest() {
 }
 
 function fibonacciTest() {
-  assert(fibonnaci(2) == 3)
+  assert(fibonacci(2) == 3)
   assert(fibonacci(3) == 5)
 }
 
 function fibonacci(n) {
   if (n < 2) return 1;
-  return fibonacci(n-1) + fibonnacci(n-2);
+  return fibonacci(n-1) + fibonacci(n-2);
 }
 ```
 
@@ -150,7 +150,7 @@ Typeless remembers the values of variables at different points during test execu
 For example:
 ```javascript
 function fibonacciTest() {
-  assert(fibonnaci(2) == 3)
+  assert(fibonacci(2) == 3)
   assert(fibonacci(3) == 5)
 }
 
@@ -163,7 +163,7 @@ function fibonacci(n) {
 
 function fibonacciUser() {
   fibonacci(
-  // After the opening paranthesis, Typeless will suggest calling fibonacci with either 2 or 3.
+  // After the opening parenthesis, Typeless will suggest calling fibonacci with either 2 or 3.
 }
 ```
 
@@ -209,7 +209,7 @@ function fibonacci(n) {
 }
 
 function fibonacciTest() {
-  assert(fibonnaci(2) == 3)
+  assert(fibonacci(2) == 3)
   assert(fibonacci(3) == 5)
 }
 
@@ -371,7 +371,7 @@ function squareTest() {
 function square(x) {
   return x + x;
          ^^^^^
-  // The value 9 was expected but it was 6.
+  // The value 9 was expected but it was 6, with a link to the assert.equal that caused this error.
 }
 ```
 
@@ -423,13 +423,13 @@ In strict mode, if any line of code is not hit by any test function, that's an e
 ```javascript
 
 fibonacciTest() {
-  assert(fibonnaci(0) == 1)
+  assert(fibonacci(0) == 1)
   assert(fibonacci(1) == 1)
 }
 
 function fibonacci(x) {
   if (x < 2) return 1;
-  return fibonacci(x-1) + fibonnacci(x-2);
+  return fibonacci(x-1) + fibonacci(x-2);
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   // This line is not covered by tests
 }

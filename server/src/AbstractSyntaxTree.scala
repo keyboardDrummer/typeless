@@ -1,5 +1,7 @@
+import miksilo.editorParser.parsers.SourceElement
 import miksilo.editorParser.parsers.editorParsers.OffsetPointerRange
 import miksilo.languageServer.core.language.FileElement
+import miksilo.lspprotocol.lsp.Diagnostic
 
 import scala.collection.immutable.ListMap
 import scala.collection.mutable
@@ -51,7 +53,7 @@ case class Call(range: OffsetPointerRange, target: Expression, arguments: Vector
       }
     }
     targetResult match {
-      case closure: Closure =>
+      case closure: ClosureLike =>
         closure.evaluate(context, argumentValues)
       case targetValue: Value =>
         TypeError(target, "closure", targetValue)
@@ -126,7 +128,13 @@ case class Multiplication(range: OffsetPointerRange, left: Expression, right: Ex
   override def evaluate(context: Context, leftValue: ExpressionResult, rightValue: ExpressionResult): ExpressionResult = ???
 }
 case class Addition(range: OffsetPointerRange, left: Expression, right: Expression) extends BinaryExpression {
-  override def evaluate(context: Context, leftValue: ExpressionResult, rightValue: ExpressionResult): ExpressionResult = ???
+  override def evaluate(context: Context,
+                        leftValue: ExpressionResult, rightValue: ExpressionResult): ExpressionResult = {
+    (leftValue, rightValue) match {
+      case (leftInt: IntValue, rightInt: IntValue) => new IntValue(leftInt.value + rightInt.value)
+      case _ => ???
+    }
+  }
 }
 
 trait Expression extends FileElement {
@@ -143,14 +151,40 @@ case class Lambda(range: OffsetPointerRange, arguments: Vector[Argument], body: 
   }
 }
 
-case class Closure(lambda: Lambda, state: State) extends Value {
-  def evaluate(context: Context, argumentValues: Iterable[Value]): ExpressionResult = {
-    val newContext = context.withState(state)
+case class Closure(lambda: Lambda, state: Scope) extends ClosureLike {
+  def evaluate(context: Context, argumentValues: collection.Seq[Value]): ExpressionResult = {
+    val newContext = context.withState(state.nest())
     lambda.arguments.zip(argumentValues).foreach(t => {
       newContext.declareWith(t._1, t._1.name, t._2)
     })
     Statement.evaluateBody(newContext, lambda.body).toExpressionResult()
   }
+}
+
+case class AssertEqualFailure(actual: Value, expected: Value) extends ExceptionResult {
+  override def element: SourceElement = actual.createdAt
+
+  override def message: String = s"The value '${expected.represent()}' was expected but it was '${actual.represent()}'."
+
+  override def toDiagnostic: Diagnostic = {
+    // TODO add related information linking to assertion.
+    super.toDiagnostic
+  }
+}
+
+object AssertStrictEqual extends ClosureLike {
+  override def evaluate(context: Context, argumentValues: collection.Seq[Value]): ExpressionResult = {
+    val actual = argumentValues(0)
+    val expected = argumentValues(1)
+    if (!Value.strictEqual(actual, expected)) {
+      return AssertEqualFailure(actual, expected)
+    }
+    new UndefinedValue()
+  }
+}
+
+trait ClosureLike extends Value {
+  def evaluate(context: Context, argumentValues: collection.Seq[Value]): ExpressionResult
 }
 
 object Statement {
