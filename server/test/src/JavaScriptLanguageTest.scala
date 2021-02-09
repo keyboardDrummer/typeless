@@ -1,5 +1,7 @@
+import miksilo.editorParser.parsers.editorParsers.SourceRange
 import miksilo.languageServer.core.language.Language
 import miksilo.languageServer.server.{LanguageServerTest, MiksiloLanguageServer}
+import miksilo.lspprotocol.lsp.{Diagnostic, HumanPosition}
 import org.scalatest.funsuite.AnyFunSuite
 
 class ExampleExpressionLanguageTest extends AnyFunSuite with LanguageServerTest {
@@ -38,7 +40,20 @@ class ExampleExpressionLanguageTest extends AnyFunSuite with LanguageServerTest 
   }
 
   test("basic crash test") {
-    val program = "3.doesNotExist"
-    assertResult(Seq.empty)(getDiagnostics(server, program))
+    val program =
+      """// The function 'fibonacciTest' is recognized as a test.
+        |const fibonacciTest = () => {
+        |  assert.equal(fibonacci(3), 3);
+        |  assert.equal(fibonacci(4), 5);
+        |}
+        |
+        |const fibonacci = (n) => {
+        |  return n.foo;
+        |  // The member 'foo' is not available on value '3'.
+        |}
+        |""".stripMargin
+    val expected = Seq(Diagnostic(SourceRange(HumanPosition(8, 10), HumanPosition(8, 15)), Some(1), "The member 'foo' is not available on value '3'"))
+    val diagnostics = getDiagnostics(server, program)
+    assertResult(expected)(diagnostics)
   }
 }

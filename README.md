@@ -78,13 +78,13 @@ Typeless recognizes tests by looking for parameterless functions whose name ends
 ```javascript
 // The function 'fibonacciTest' is recognized as a test.
 function fibonacciTest() {
-  assert.equal(fibonnaci(3), 3);
+  assert.equal(fibonacci(3), 3);
   assert.equal(fibonacci(4), 5);
 }
 
 function fibonacci(n) {
   if (n < 2) return 1;
-  return fibonacci(n-1) + fibonnacci(n-2);
+  return fibonacci(n-1) + fibonacci(n-2);
 }
 ```
 
@@ -93,7 +93,7 @@ function fibonacci(n) {
 If a test throws an unhandled error, Typeless shows the error where it was thrown:
 ```javascript
 function fibonacciTest() {
-  assert.equal(fibonnaci(3), 3);
+  assert.equal(fibonacci(3), 3);
   assert.equal(fibonacci(4), 5);
 }
 
