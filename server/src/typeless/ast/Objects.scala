@@ -80,7 +80,10 @@ case class DotAccess(range: OffsetPointerRange, target: Expression, property: Na
         return ScopeInformation(targetObject)
       }
       targetObject.getMember(property.name) match {
-        case Some(memberValue) => memberValue
+        case Some(memberValue) => {
+          property.addReference(context, memberValue)
+          memberValue
+        }
         case None => if (context.allowUndefinedPropertyAccess) {
           new UndefinedValue()
         } else {
@@ -98,6 +101,8 @@ case class DotAccess(range: OffsetPointerRange, target: Expression, property: Na
     context.evaluateObjectValue(target).flatMap(targetValue => {
       val targetObject = targetValue.asInstanceOf[ObjectValue]
       context.evaluateExpression(value).flatMap(valueValue => {
+        targetObject.members.get(property.name).foreach(memberValue => property.addReference(context, memberValue))
+
         valueValue.definedAt = Some(property)
         targetObject.setMember(property.name, valueValue)
         valueValue

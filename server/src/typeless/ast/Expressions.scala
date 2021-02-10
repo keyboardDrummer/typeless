@@ -41,7 +41,9 @@ case class ObjectLiteral(range: OffsetPointerRange, members: ListMap[String, Exp
 class VariableReference(val range: OffsetPointerRange, val name: String)
   extends Expression with AssignmentTarget with NameLike {
   override def evaluate(context: Context): ExpressionResult = {
-    context.get(this, name)
+    val result = context.get(this, name)
+    addReference(context, result)
+    result
   }
 
   override def assign(context: Context, value: Expression): ExpressionResult = {

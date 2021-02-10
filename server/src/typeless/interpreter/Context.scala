@@ -1,13 +1,18 @@
 package typeless.interpreter
 
 import miksilo.editorParser.parsers.SourceElement
-import typeless.ast.{Expression, ScopeInformation, StringValue}
+import typeless.ast.{Expression, NameLike, ScopeInformation, StringValue}
+
+class References(var references: Map[NameLike, SourceElement] = Map.empty) {
+
+}
 
 class Context(val allowUndefinedPropertyAccess: Boolean,
               var functionCorrectness: Option[FunctionCorrectness],
               var runningTests: Set[Closure],
               var throwAtElementResult: Option[SourceElement],
               var collectScopeAtElement: Option[SourceElement],
+              var referencesOption: Option[References],
               val scope: Scope) {
 
 
@@ -39,7 +44,7 @@ class Context(val allowUndefinedPropertyAccess: Boolean,
 
   def withScope(newScope: Scope): Context = {
     val result = new Context(allowUndefinedPropertyAccess, functionCorrectness,
-      runningTests, throwAtElementResult, collectScopeAtElement, newScope)
+      runningTests, throwAtElementResult, collectScopeAtElement, referencesOption, newScope)
     result._this = _this
     result
   }

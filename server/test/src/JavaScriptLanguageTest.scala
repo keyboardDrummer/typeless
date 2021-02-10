@@ -1,11 +1,10 @@
 import miksilo.editorParser.parsers.editorParsers.SourceRange
-import miksilo.languageServer.core.language.Language
-import miksilo.languageServer.server.{LanguageServerTest, MiksiloLanguageServer}
-import miksilo.lspprotocol.lsp.{CompletionItem, Diagnostic, FileRange, HumanPosition}
+import miksilo.languageServer.server.LanguageServerTest
+import miksilo.lspprotocol.lsp.{CompletionItem, Diagnostic, HumanPosition}
 import org.scalatest.funsuite.AnyFunSuite
 import typeless.server.TypelessLanguageServer
 
-class ExampleExpressionLanguageTest extends AnyFunSuite with LanguageServerTest {
+class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
 
   val server = new TypelessLanguageServer()
 
@@ -184,7 +183,7 @@ class ExampleExpressionLanguageTest extends AnyFunSuite with LanguageServerTest 
     assertResult(Seq(localItem, globalItem))(complete(server, program, HumanPosition(6, 6)).items)
     assertResult(Seq(globalItem))(complete(server, program, HumanPosition(6, 7)).items)
 
-    // TODO enable code completion between statements by inserting No-op statements where needed.
+    // TODO enable accurate code completion between statements by inserting No-op statements where needed.
     // assertResult(Seq(globalItem))(complete(server, program, HumanPosition(4, 4)).items)
     //assertResult(Seq(globalItem, localItem))(complete(server, program, HumanPosition(7, 4)).items)
   }
@@ -205,6 +204,10 @@ class ExampleExpressionLanguageTest extends AnyFunSuite with LanguageServerTest 
     val definitions = complete(server, program, HumanPosition(7, 17)).items
     assertResult(expected)(definitions)
   }
+
+  // References
+  // Rename
+  // Hover
 
   ignore("call signature help") {
     val program =

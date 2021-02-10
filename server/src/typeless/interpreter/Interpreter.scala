@@ -23,6 +23,7 @@ case class ReturnedValue(value: Value) extends StatementResult {
 // TODO turn into a monad.
 trait ExpressionResult {
   def flatMap(f: Value => ExpressionResult): ExpressionResult
+  def toValue: Option[Value]
 }
 
 trait DiagnosticExceptionResult extends ExceptionResult {
@@ -35,6 +36,8 @@ trait DiagnosticExceptionResult extends ExceptionResult {
 }
 
 trait ExceptionResult extends ExpressionResult with StatementResult {
+
+  override def toValue: Option[Value] = None
 
   override def flatMap(f: Value => ExpressionResult): ExpressionResult = this
 
@@ -100,6 +103,8 @@ object Value {
 }
 
 trait Value extends ExpressionResult {
+
+  override def toValue: Option[Value] = Some(this)
 
   override def flatMap(f: Value => ExpressionResult): ExpressionResult = {
     f(this)
@@ -198,7 +203,9 @@ object InterpreterPhase {
     val javaScriptCompilation = compilation.asInstanceOf[JavaScriptCompilation]
     val program = compilation.program.asInstanceOf[SourcePathFromElement].sourceElement.asInstanceOf[JavaScriptFile]
     val defaultState = StandardLibrary.createState()
-    val context = new Context(false, None, Set.empty, None, None, defaultState)
+
+    javaScriptCompilation.references = new References()
+    val context = new Context(false, None, Set.empty, None, None, Some(javaScriptCompilation.references), defaultState)
     val result = program.evaluate(context)
     result match {
       case e: DiagnosticExceptionResult =>
@@ -227,6 +234,7 @@ object InterpreterPhase {
     })
 
     context.functionCorrectness = Some(new FunctionCorrectness(functionsWithTests))
+
     javaScriptCompilation.context = context
 
     tests.foreach(test => {
@@ -237,6 +245,8 @@ object InterpreterPhase {
         case _ =>
       }
     })
+
+    context.referencesOption = None
   }
 }
 

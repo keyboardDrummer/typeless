@@ -3,7 +3,7 @@ package typeless.ast
 import miksilo.editorParser.parsers.SourceElement
 import miksilo.editorParser.parsers.editorParsers.OffsetPointerRange
 import miksilo.languageServer.core.language.FileElement
-import typeless.interpreter.{BooleanValue, Context, ExceptionResult, ReturnedValue, StatementResult, TypeError, Value}
+import typeless.interpreter.{BooleanValue, Context, ExceptionResult, ExpressionResult, ReturnedValue, StatementResult, TypeError, Value}
 import typeless.interpreter
 
 case class ExpressionStatement(range: OffsetPointerRange, expression: Expression) extends Statement {
@@ -21,6 +21,16 @@ case class ExpressionStatement(range: OffsetPointerRange, expression: Expression
 
 trait NameLike {
   val name: String
+
+  def addReference(context: Context, result: ExpressionResult): Unit = {
+    for {
+      value <- result.toValue
+      definedAt <- value.definedAt
+      references <- context.referencesOption
+    } yield {
+      references.references += this -> definedAt
+    }
+  }
 }
 
 class Name(val range: OffsetPointerRange, val name: String) extends FileElement with NameLike
