@@ -1,7 +1,7 @@
 import miksilo.editorParser.parsers.SourceElement
 import miksilo.editorParser.parsers.editorParsers.OffsetPointerRange
 
-case class NativeCallFailed(expectedValues: Seq[Value]) extends ExceptionResult {
+case class NativeCallFailed(expectedValues: Seq[Value]) extends DiagnosticExceptionResult {
 
   override def message: String = "assertion failed"
 
@@ -29,5 +29,16 @@ object StandardLibrary {
     val result = new Scope()
     result.declare("assert", new Assert())
     result
+  }
+}
+
+object AssertStrictEqual extends ClosureLike {
+  override def evaluate(context: Context, argumentValues: collection.Seq[Value]): ExpressionResult = {
+    val actual = argumentValues(0)
+    val expected = argumentValues(1)
+    if (!Value.strictEqual(actual, expected)) {
+      return AssertEqualFailure(actual, expected)
+    }
+    new UndefinedValue()
   }
 }

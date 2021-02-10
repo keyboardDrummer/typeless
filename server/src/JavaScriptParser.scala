@@ -57,7 +57,8 @@ object JavaScriptParser extends CommonStringReaderParser with LeftRecursiveCorre
     addition | subtraction | multiplication | memberAccess | memberAssignment | modulo | objectLiteral | stringLiteralParser
     | booleanParser | equalsParser | newParser | lessThanParser)
 
-  val declaration: Parser[Declaration] = ("const" ~> parseIdentifier ~< "=" ~ expression ~< statementEnd).
+  val declarationName = parseIdentifier.withSourceRange((range, name) => DeclarationName(range, name))
+  val declaration: Parser[Declaration] = ("const" ~> declarationName ~< "=" ~ expression ~< statementEnd).
     withSourceRange((range, t) => Declaration(range, t._1, t._2))
   val expressionStatement: Parser[ExpressionStatement] = (expression ~< statementEnd).
     withSourceRange((range, expr) => ExpressionStatement(range, expr))

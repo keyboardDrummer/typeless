@@ -1,13 +1,12 @@
 import miksilo.editorParser.parsers.editorParsers.SourceRange
 import miksilo.languageServer.core.language.Language
 import miksilo.languageServer.server.{LanguageServerTest, MiksiloLanguageServer}
-import miksilo.lspprotocol.lsp.{Diagnostic, HumanPosition}
+import miksilo.lspprotocol.lsp.{Diagnostic, FileRange, HumanPosition}
 import org.scalatest.funsuite.AnyFunSuite
 
 class ExampleExpressionLanguageTest extends AnyFunSuite with LanguageServerTest {
 
-  val language: Language = JavaScriptLanguage
-  val server = new MiksiloLanguageServer(language)
+  val server = new TypelessLanguageServer()
 
   test("first example test") {
 
@@ -43,8 +42,8 @@ class ExampleExpressionLanguageTest extends AnyFunSuite with LanguageServerTest 
     val program =
       """// The function 'fibonacciTest' is recognized as a test.
         |const fibonacciTest = () => {
-        |  assert.equal(fibonacci(3), 3);
-        |  assert.equal(fibonacci(4), 5);
+        |  assert.equal(fibonacci(3), 2);
+        |  assert.equal(fibonacci(4), 3);
         |}
         |
         |const fibonacci = (n) => {
@@ -67,7 +66,6 @@ class ExampleExpressionLanguageTest extends AnyFunSuite with LanguageServerTest 
         |const fibonacciTest = () => {
         |  assert(fibonacci(3) == 2);
         |  assert(fibonacci(4) == 3);
-        |  assert(fibonacci(5) == 5);
         |};
         |
         |const fibonacci = (n) => {
@@ -118,5 +116,19 @@ class ExampleExpressionLanguageTest extends AnyFunSuite with LanguageServerTest 
     val expected = Seq(Diagnostic(SourceRange(HumanPosition(6, 15), HumanPosition(6, 22)), Some(1), "The value 'Remy' was expected but it was 'Elise'."))
     val diagnostics = getDiagnostics(server, program)
     assertResult(expected)(diagnostics)
+  }
+
+  test("basic goto definition") {
+    val program =
+      """const variablesTest = () => {
+        |  const x = 2;
+        |  return x + 3;
+        |  // Goto definition on x will jump to "x" in "const x";
+        |}
+        |""".stripMargin
+
+    val expected = Seq(SourceRange(HumanPosition(2, 9), HumanPosition(2, 10)))
+    val definitions = gotoDefinition(server, program,  HumanPosition(3, 10)).map(d => d.range)
+    assertResult(expected)(definitions)
   }
 }

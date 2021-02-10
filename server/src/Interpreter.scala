@@ -1,5 +1,5 @@
 import miksilo.editorParser.parsers.SourceElement
-import miksilo.languageServer.core.language.{Phase, SourcePathFromElement}
+import miksilo.languageServer.core.language.{Compilation, Phase, SourcePathFromElement}
 import miksilo.languageServer.core.smarts.FileDiagnostic
 import miksilo.lspprotocol.lsp.Diagnostic
 
@@ -19,27 +19,32 @@ case class ReturnedValue(value: Value) extends StatementResult {
 trait ExpressionResult {
 }
 
-trait ExceptionResult extends ExpressionResult with StatementResult {
+trait DiagnosticExceptionResult extends ExceptionResult {
   def element: SourceElement
   def message: String
 
   def toDiagnostic: Diagnostic = {
     Diagnostic(element.rangeOption.get.toSourceRange, Some(1), message)
   }
+}
+
+trait ExceptionResult extends ExpressionResult with StatementResult {
 
   override def toExpressionResult(): ExpressionResult = this
 }
 
-case class UndefinedMemberAccess(element: SourceElement, name: String, value: Value) extends ExceptionResult {
+case class UndefinedMemberAccess(element: SourceElement, name: String, value: Value) extends DiagnosticExceptionResult {
   override def message: String = s"The member '$name' is not available on value '${value.represent()}'"
 }
 
 trait CatchableExceptionResult extends ExceptionResult
 
-case class ReferenceError(element: SourceElement, name: String) extends CatchableExceptionResult {
+case class ReferenceError(element: SourceElement, name: String)
+  extends DiagnosticExceptionResult with CatchableExceptionResult {
   override def message: String = s"Variable $name was accessed but is not defined"
 }
-case class TypeError(element: SourceElement, expected: String, value: Value) extends CatchableExceptionResult {
+case class TypeError(element: SourceElement, expected: String, value: Value)
+  extends DiagnosticExceptionResult with CatchableExceptionResult {
   override def message: String = s"Expected value of type $expected but got '${value.represent()}'"
 }
 
@@ -120,79 +125,8 @@ class FunctionCorrectness(functionsWithTests: Map[Closure, Closure]) {
   }
 }
 
-class Context(val allowUndefinedPropertyAccess: Boolean,
-              var functionCorrectness: Option[FunctionCorrectness] = None,
-              var runningTests: Set[Closure] = Set.empty,
-              throwAtElementResult: Option[SourceElement] = None,
-              val state: Scope = new Scope()) {
 
 
-  def isRunningTest(test: Closure): Boolean = {
-    runningTests.contains(test)
-  }
-
-
-  def runTest(test: Closure): ExpressionResult = {
-    runningTests += test
-    val result = test.evaluate(this, Seq.empty)
-    runningTests -= test
-    result
-  }
-
-
-  def isClosureCorrect(closureLike: ClosureLike): Boolean = {
-    closureLike match {
-      case closure: Closure =>
-        functionCorrectness.fold(true)(c => c.isClosureCorrect(this, closure))
-      case _ => true
-    }
-  }
-
-  var _this: Option[ObjectValue] = None
-
-  def setThis(value: ObjectValue): Unit = _this = Some(value)
-  def getThis(): ObjectValue = _this.head
-
-  def withState(state: Scope): Context = {
-    val result = new Context(allowUndefinedPropertyAccess, functionCorrectness, runningTests, state = state)
-    result._this = _this
-    result
-  }
-
-  def get(element: SourceElement, name: String): ExpressionResult = state.get(element, name)
-
-  def declareWith(source: SourceElement, name: String, value: Value): Unit = {
-    value.definedAt = Some(source)
-    state.declare(name, value)
-  }
-
-  def declare(source: SourceElement, name: String): Unit = {
-    val defaultValue = new UndefinedValue()
-    defaultValue.definedAt = Some(source)
-    state.declare(name, defaultValue)
-  }
-
-  def evaluateExpression(expression: Expression): ExpressionResult = {
-    val result = expression.evaluate(this)
-    result match {
-      case value: Value if value.createdAt == null => value.createdAt = expression
-      case _ =>
-    }
-    result
-  }
-
-  def assign(element: SourceElement, name: String, newValue: Value): ExpressionResult = {
-    get(element, name) match {
-      case value: Value =>
-        newValue.definedAt = value.definedAt
-        newValue.documentation = value.documentation
-        value
-      case error =>
-        // TODO change error?
-        error
-    }
-  }
-}
 
 class Scope(parentOption: Option[Scope] = None) {
 
@@ -222,14 +156,30 @@ class Scope(parentOption: Option[Scope] = None) {
   }
 }
 
+class Closure(val lambda: Lambda, val state: Scope) extends Value with ClosureLike {
+
+  def evaluate(context: Context, argumentValues: collection.Seq[Value]): ExpressionResult = {
+    val newContext = context.withState(state.nest())
+    lambda.arguments.zip(argumentValues).foreach(t => {
+      newContext.declareWith(t._1, t._1.name, t._2)
+    })
+    Statement.evaluateBody(newContext, lambda.body).toExpressionResult()
+  }
+}
+
 object InterpreterPhase {
-  val phase = Phase("interpreter", "where the interpreting happens", compilation => {
+
+  val phase = Phase("interpreter", "where the interpreting happens", interpret)
+
+  def interpret(compilation: Compilation): Unit = {
+
+    val javaScriptCompilation = compilation.asInstanceOf[JavaScriptCompilation]
     val program = compilation.program.asInstanceOf[SourcePathFromElement].sourceElement.asInstanceOf[JavaScriptFile]
     val defaultState = StandardLibrary.createState()
-    val context = new Context(false, state = defaultState)
+    val context = new Context(false, None, Set.empty, None, defaultState)
     val result = program.evaluate(context)
     result match {
-      case e: ExceptionResult =>
+      case e: DiagnosticExceptionResult =>
         compilation.diagnostics += FileDiagnostic("uri", e.toDiagnostic)
       case _ =>
     }
@@ -249,19 +199,42 @@ object InterpreterPhase {
         Seq.empty
       }
     })
+    javaScriptCompilation.tests = tests
     val functionsWithTests: Map[Closure, Closure] = tests.flatMap(test => {
       functions.get(test._1.dropRight(testKeyword.length)).map(f => (f, test._2)).toIterable
     })
 
     context.functionCorrectness = Some(new FunctionCorrectness(functionsWithTests))
+    javaScriptCompilation.context = context
+
     tests.foreach(test => {
       val result = context.runTest(test._2)
       result match {
-        case e: ExceptionResult =>
+        case e: DiagnosticExceptionResult =>
           compilation.diagnostics += FileDiagnostic(compilation.rootFile.get, e.toDiagnostic)
         case _ =>
       }
     })
+  }
+}
 
-  })
+
+class BooleanValue(value: Boolean) extends PrimitiveValue[Boolean](value) {
+}
+
+
+trait ClosureLike extends Value {
+  def evaluate(context: Context, argumentValues: collection.Seq[Value]): ExpressionResult
+}
+
+
+case class AssertEqualFailure(actual: Value, expected: Value) extends DiagnosticExceptionResult {
+  override def element: SourceElement = actual.createdAt
+
+  override def message: String = s"The value '${expected.represent()}' was expected but it was '${actual.represent()}'."
+
+  override def toDiagnostic: Diagnostic = {
+    // TODO add related information linking to assertion.
+    super.toDiagnostic
+  }
 }

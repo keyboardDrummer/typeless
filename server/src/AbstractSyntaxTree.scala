@@ -1,7 +1,6 @@
-import miksilo.editorParser.parsers.SourceElement
+import miksilo.editorParser.parsers.{RealSourceElement, SourceElement}
 import miksilo.editorParser.parsers.editorParsers.OffsetPointerRange
 import miksilo.languageServer.core.language.FileElement
-import miksilo.lspprotocol.lsp.Diagnostic
 
 import scala.collection.immutable.ListMap
 import scala.collection.mutable
@@ -23,6 +22,10 @@ case class StringLiteral(range: OffsetPointerRange, value: String) extends Expre
 
 case class ObjectLiteral(range: OffsetPointerRange, members: ListMap[String, Expression]) extends Expression {
   override def evaluate(context: Context): ExpressionResult = ???
+
+  override def childElements: Seq[SourceElement] = {
+    members.values.toSeq
+  }
 }
 
 case class ThisReference(range: OffsetPointerRange) extends Expression {
@@ -47,6 +50,10 @@ case class MemberAssignment(range: OffsetPointerRange, target: Expression, name:
       case e: ExceptionResult => e
     }
   }
+
+  override def childElements: Seq[SourceElement] = {
+    Seq(target, value)
+  }
 }
 
 case class MemberAccess(range: OffsetPointerRange, target: Expression, name: String) extends Expression {
@@ -64,6 +71,10 @@ case class MemberAccess(range: OffsetPointerRange, target: Expression, name: Str
         }
       case e: ExceptionResult => e
     }
+  }
+
+  override def childElements: Seq[SourceElement] = {
+    Seq(target)
   }
 }
 
@@ -86,7 +97,8 @@ class New(range: OffsetPointerRange, target: Expression, arguments: Vector[Expre
 }
 
 class CorrectCallGaveException(exception: ExceptionResult, call: Call,
-                               closure: ClosureLike, argumentValues: collection.Seq[Value]) extends ExceptionResult {
+                               closure: ClosureLike, argumentValues: collection.Seq[Value])
+  extends DiagnosticExceptionResult {
   override def element: SourceElement = call
 
   override def message: String = {
@@ -96,6 +108,11 @@ class CorrectCallGaveException(exception: ExceptionResult, call: Call,
 }
 
 case class Call(range: OffsetPointerRange, target: Expression, arguments: Vector[Expression]) extends Expression {
+
+  override def childElements: Seq[SourceElement] = {
+    Seq(target) ++ arguments
+  }
+
   override def evaluate(context: Context): ExpressionResult = {
     val targetResult = context.evaluateExpression(target)
     val argumentResults = arguments.map(argument => context.evaluateExpression(argument))
@@ -136,6 +153,10 @@ case class ReturnStatement(range: OffsetPointerRange, expression: Expression) ex
       case result: ExceptionResult => result
     }
   }
+
+  override def childElements: Seq[SourceElement] = {
+    Seq(expression)
+  }
 }
 
 case class ExpressionStatement(range: OffsetPointerRange, expression: Expression) extends Statement {
@@ -145,29 +166,47 @@ case class ExpressionStatement(range: OffsetPointerRange, expression: Expression
       case statementResult: StatementResult => statementResult
     }
   }
+
+  override def childElements: Seq[SourceElement] = {
+    Seq(expression)
+  }
 }
 
 case class JavaScriptFile(range: OffsetPointerRange, statements: Vector[Statement]) extends FileElement {
   def evaluate(context: Context): StatementResult = {
     Statement.evaluateBody(context, statements)
   }
+
+  override def childElements: Seq[SourceElement] = {
+    statements
+  }
 }
 
-case class Declaration(range: OffsetPointerRange, name: String, value: Expression) extends Statement {
+case class DeclarationName(range: OffsetPointerRange, value: String) extends FileElement
+
+case class Declaration(range: OffsetPointerRange, name: DeclarationName, value: Expression) extends Statement {
   override def evaluate(context: Context): StatementResult = {
     val evaluated = context.evaluateExpression(value)
     evaluated match {
       case value: Value =>
-        context.declareWith(this, name, value)
+        context.declareWith(name, name.value, value)
         Void
       case statementResult: StatementResult => statementResult
     }
+  }
+
+  override def childElements: Seq[SourceElement] = {
+    Seq(value)
   }
 }
 
 trait BinaryExpression extends Expression {
   def left: Expression
   def right: Expression
+
+  override def childElements: Seq[SourceElement] = {
+    Seq(left, right)
+  }
 
   def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult
 
@@ -199,9 +238,6 @@ case class Subtraction(range: OffsetPointerRange, left: Expression, right: Expre
       case _ => TypeError(this, "supports -", leftValue)
     }
   }
-}
-
-class BooleanValue(value: Boolean) extends PrimitiveValue[Boolean](value) {
 }
 
 case class LessThan(range: OffsetPointerRange, left: Expression, right: Expression) extends BinaryExpression {
@@ -248,43 +284,10 @@ case class Lambda(range: OffsetPointerRange, arguments: Vector[Argument], body: 
   override def evaluate(context: Context): ExpressionResult = {
     new Closure(this, context.state)
   }
-}
 
-class Closure(val lambda: Lambda, val state: Scope) extends Value with ClosureLike {
-
-  def evaluate(context: Context, argumentValues: collection.Seq[Value]): ExpressionResult = {
-    val newContext = context.withState(state.nest())
-    lambda.arguments.zip(argumentValues).foreach(t => {
-      newContext.declareWith(t._1, t._1.name, t._2)
-    })
-    Statement.evaluateBody(newContext, lambda.body).toExpressionResult()
+  override def childElements: Seq[SourceElement] = {
+    arguments ++ body
   }
-}
-
-case class AssertEqualFailure(actual: Value, expected: Value) extends ExceptionResult {
-  override def element: SourceElement = actual.createdAt
-
-  override def message: String = s"The value '${expected.represent()}' was expected but it was '${actual.represent()}'."
-
-  override def toDiagnostic: Diagnostic = {
-    // TODO add related information linking to assertion.
-    super.toDiagnostic
-  }
-}
-
-object AssertStrictEqual extends ClosureLike {
-  override def evaluate(context: Context, argumentValues: collection.Seq[Value]): ExpressionResult = {
-    val actual = argumentValues(0)
-    val expected = argumentValues(1)
-    if (!Value.strictEqual(actual, expected)) {
-      return AssertEqualFailure(actual, expected)
-    }
-    new UndefinedValue()
-  }
-}
-
-trait ClosureLike extends Value {
-  def evaluate(context: Context, argumentValues: collection.Seq[Value]): ExpressionResult
 }
 
 object Statement {
@@ -300,7 +303,10 @@ object Statement {
   }
 }
 
-case class IfStatement(range: OffsetPointerRange, condition: Expression, thenBody: Seq[Statement], elseBody: Seq[Statement]) extends Statement {
+case class IfStatement(range: OffsetPointerRange,
+                       condition: Expression,
+                       thenBody: Seq[Statement],
+                       elseBody: Seq[Statement]) extends Statement {
   override def evaluate(context: Context): StatementResult = {
     val conditionResult = context.evaluateExpression(condition)
     conditionResult match {
@@ -314,6 +320,10 @@ case class IfStatement(range: OffsetPointerRange, condition: Expression, thenBod
       case conditionValue: Value => TypeError(this, "boolean", conditionValue)
       case e: ExceptionResult => e
     }
+  }
+
+  override def childElements: Seq[SourceElement] = {
+    Seq(condition) ++ thenBody ++ elseBody
   }
 }
 
