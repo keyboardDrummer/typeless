@@ -76,6 +76,9 @@ class ExampleExpressionLanguageTest extends AnyFunSuite with LanguageServerTest 
         |  return fibonacci(n-1) + fibonacci(n-2);
         |};
         |""".stripMargin
+
+    // TODO, add linked diagnostic to actual failure location in fibonacci.
+    // TODO, suggest example values in diagnostic
     val expected = Seq(Diagnostic(SourceRange(HumanPosition(2, 3), HumanPosition(2, 21)), Some(1), "This function call failed with arguments 'hello'."))
     val diagnostics = getDiagnostics(server, program)
     assertResult(expected)(diagnostics)
