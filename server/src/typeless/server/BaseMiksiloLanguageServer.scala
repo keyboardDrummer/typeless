@@ -65,7 +65,11 @@ abstract class BaseMiksiloLanguageServer[MyCompilation <: Compilation](val langu
 
   def getSourceElement(text: ParseText, position: FilePosition): Option[SourcePath] = {
     val fileOffset = FileOffset(position.uri, text.getOffset(position.position))
-    getCompilation.program.getChildForPosition(fileOffset)
+    val program = getCompilation.program
+    if (program == null)
+      return None
+
+    program.getChildForPosition(fileOffset)
   }
 
   override def initialize(parameters: InitializeParams): Unit = {}

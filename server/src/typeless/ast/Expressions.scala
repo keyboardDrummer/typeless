@@ -3,7 +3,7 @@ package typeless.ast
 import miksilo.editorParser.parsers.SourceElement
 import miksilo.editorParser.parsers.editorParsers.OffsetPointerRange
 import miksilo.languageServer.core.language.FileElement
-import typeless.interpreter.{BooleanValue, Context, ExpressionResult, IntValue, TypeError, Value}
+import typeless.interpreter.{BooleanValue, Context, ExceptionResult, ExpressionResult, IntValue, ObjectValue, TypeError, Value}
 
 import scala.collection.immutable.ListMap
 
@@ -22,7 +22,16 @@ case class StringLiteral(range: OffsetPointerRange, value: String) extends Expre
 }
 
 case class ObjectLiteral(range: OffsetPointerRange, members: ListMap[String, Expression]) extends Expression {
-  override def evaluate(context: Context): ExpressionResult = ???
+  override def evaluate(context: Context): ExpressionResult = {
+    val result = new ObjectValue()
+    for(e <- members) {
+      context.evaluateExpression(e._2) match {
+        case e: ExceptionResult => return e
+        case value: Value => result.members.put(e._1, value)
+      }
+    }
+    result
+  }
 
   override def childElements: Seq[SourceElement] = {
     members.values.toSeq

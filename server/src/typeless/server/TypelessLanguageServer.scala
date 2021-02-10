@@ -25,7 +25,8 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
     val context = getCompilation.context
     context.throwAtElementResult = Some(element)
     for(test <- getCompilation.tests.values) {
-      test.evaluate(context, Seq.empty) match {
+      val result = test.evaluate(context, Seq.empty)
+      result match {
         case information: ReturnInformationWithThrow =>
           return Some(information.result)
         case _ =>

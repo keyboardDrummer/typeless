@@ -19,9 +19,9 @@ case class ExpressionStatement(range: OffsetPointerRange, expression: Expression
   }
 }
 
-case class DeclarationName(range: OffsetPointerRange, value: String) extends FileElement
+case class Name(range: OffsetPointerRange, value: String) extends FileElement
 
-case class Declaration(range: OffsetPointerRange, name: DeclarationName, value: Expression) extends Statement {
+case class Declaration(range: OffsetPointerRange, name: Name, value: Expression) extends Statement {
   override def evaluate(context: Context): StatementResult = {
     val evaluated = context.evaluateExpression(value)
     evaluated match {

@@ -50,20 +50,22 @@ object JavaScriptParser extends CommonStringReaderParser with LeftRecursiveCorre
   lazy val lambda: Parser[Lambda] = (lambdaArguments ~< "=>" ~ lambdaBody).
     withSourceRange((range, t) => Lambda(range, t._1, t._2))
 
-  val memberAccess: Parser[DotAccess] = (expression ~< "." ~ parseIdentifier).
+  val bracketAccess: Parser[BracketAccess] = (expression ~< "[" ~ expression ~< "]").
+    withSourceRange((range, t) => BracketAccess(range, t._1, t._2))
+  val dotAccess: Parser[DotAccess] = (expression ~< "." ~ name).
     withSourceRange((range, t) => DotAccess(range, t._1, t._2))
 
-  val assignmentTarget = memberAccess | variableExpression
+  val assignmentTarget = dotAccess | variableExpression | bracketAccess
   val assignment: Parser[Assignment] = (assignmentTarget ~< "=" ~ expression).
     withSourceRange((range, t) => Assignment(range, t._1, t._2))
 
   val thisParser = ("this": Parser[String]).withSourceRange((range, _) => ThisReference(range))
   lazy val expression: Parser[Expression] = new Lazy(thisParser | callExpression | lambda | numberLiteral | variableExpression |
-    addition | subtraction | multiplication | memberAccess | assignment | modulo | objectLiteral | stringLiteralParser
+    addition | subtraction | multiplication | dotAccess | bracketAccess | assignment | modulo | objectLiteral | stringLiteralParser
     | booleanParser | equalsParser | newParser | lessThanParser)
 
-  val declarationName = parseIdentifier.withSourceRange((range, name) => DeclarationName(range, name))
-  val declaration: Parser[Declaration] = ("const" ~> declarationName ~< "=" ~ expression ~< statementEnd).
+  val name = parseIdentifier.withSourceRange((range, name) => Name(range, name))
+  val declaration: Parser[Declaration] = ("const" ~> name ~< "=" ~ expression ~< statementEnd).
     withSourceRange((range, t) => Declaration(range, t._1, t._2))
   val expressionStatement: Parser[ExpressionStatement] = (expression ~< statementEnd).
     withSourceRange((range, expr) => ExpressionStatement(range, expr))

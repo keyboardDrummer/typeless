@@ -72,7 +72,9 @@ class ObjectValue(var members: mutable.Map[String, Value] = mutable.Map.empty) e
     members.get(name)
   }
 
-  override def setMember(name: String, value: Value) = {
+  override def setMember(name: String, value: Value): Unit = {
+    val definedAt = members.get(name).flatMap(v => v.definedAt)
+    value.definedAt = definedAt.orElse(value.definedAt)
     members.put(name, value)
   }
 

@@ -133,19 +133,36 @@ class ExampleExpressionLanguageTest extends AnyFunSuite with LanguageServerTest 
     assertResult(expected)(definitions)
   }
 
-  test("complex goto definition") {
+  test("first dot assignment determines definition") {
     val program =
-      """const memberAssignments = () => {
-        |  var obj = {};
-        |  obj["name"] = 'Jeroen';
-        |  obj.name = 'Remy';
-        |  obj.name = 'Elise';
+      """const memberAssignmentsTest = () => {
+        |  const obj = {};
+        |  obj["name"] = "Jeroen";
+        |  obj.name = "Remy";
+        |  obj.name = "Elise";
+        |  obj.name
         |  // Goto definition on name will jump to "name" in the assignment "obj.name = 'Remy'";
-        |
+        |}
+        |""".stripMargin
+    // TODO enable jumping a position forward in a line to get a range
+    val expected = Seq(SourceRange(HumanPosition(4, 7), HumanPosition(4, 11)))
+    val definitions = gotoDefinition(server, program,  HumanPosition(6, 8)).map(d => d.range)
+    assertResult(expected)(definitions)
+  }
+
+  test("deleting a member allows redefining it") {
+    val program =
+      """const memberAssignmentsTest = () => {
+        |  const obj = { name: "Remy" };
         |  delete obj.name;
-        |  obj.name = 'Jacques';
+        |  obj.name = "Jacques";
+        |  obj.name
         |  // Goto definition on name will jump to "name" in the assignment "obj.name = 'Jacques'";
         |}
         |""".stripMargin
+    // TODO enable jumping a position forward in a line to get a range
+    val expected = Seq(SourceRange(HumanPosition(4, 7), HumanPosition(4, 11)))
+    val definitions = gotoDefinition(server, program,  HumanPosition(5, 8)).map(d => d.range)
+    assertResult(expected)(definitions)
   }
 }

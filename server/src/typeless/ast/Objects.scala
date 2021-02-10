@@ -26,12 +26,13 @@ case class BracketAccess(range: OffsetPointerRange, target: Expression, property
   override def evaluate(context: Context): ExpressionResult = {
     context.evaluateExpression(target).flatMap(targetValue => {
       context.evaluateString(property).flatMap(propertyValue => {
-        targetValue.getMember(propertyValue.value) match {
+        val stringValue = propertyValue.asInstanceOf[StringValue]
+        targetValue.getMember(stringValue.value) match {
           case Some(memberValue) => memberValue
           case None => if (context.allowUndefinedPropertyAccess) {
             new UndefinedValue()
           } else {
-            UndefinedMemberAccess(this, propertyValue.value, targetValue)
+            UndefinedMemberAccess(this, stringValue.value, targetValue)
           }
         }
       })
@@ -43,10 +44,11 @@ case class BracketAccess(range: OffsetPointerRange, target: Expression, property
   }
 
   override def assign(context: Context, value: Expression): ExpressionResult = {
-    context.evaluateToValue(target, targetValue => {
-      context.evaluateToString(property, propertyValue => {
-        context.evaluateToValue(value, valueValue => {
-          targetValue.setMember(propertyValue.value, valueValue)
+    context.evaluateExpression(target).flatMap(targetValue => {
+      context.evaluateString(property).flatMap(propertyValue => {
+        val stringValue = propertyValue.asInstanceOf[StringValue]
+        context.evaluateExpression(value).flatMap(valueValue => {
+          targetValue.setMember(stringValue.value, valueValue)
           valueValue
         })
       })
@@ -54,22 +56,19 @@ case class BracketAccess(range: OffsetPointerRange, target: Expression, property
   }
 }
 
-case class DotAccess(range: OffsetPointerRange, target: Expression, property: String)
+case class DotAccess(range: OffsetPointerRange, target: Expression, property: Name)
   extends Expression with AssignmentTarget {
   override def evaluate(context: Context): ExpressionResult = {
-    val targetResult = context.evaluateExpression(target)
-    targetResult match {
-      case targetValue: Value =>
-        targetValue.getMember(property) match {
-          case Some(memberValue) => memberValue
-          case None => if (context.allowUndefinedPropertyAccess) {
-            new UndefinedValue()
-          } else {
-            UndefinedMemberAccess(this, property, targetValue)
-          }
+    context.evaluateExpression(target).flatMap(targetValue => {
+      targetValue.getMember(property.value) match {
+        case Some(memberValue) => memberValue
+        case None => if (context.allowUndefinedPropertyAccess) {
+          new UndefinedValue()
+        } else {
+          UndefinedMemberAccess(this, property.value, targetValue)
         }
-      case e: ExceptionResult => e
-    }
+      }
+    })
   }
 
   override def childElements: Seq[SourceElement] = {
@@ -77,18 +76,13 @@ case class DotAccess(range: OffsetPointerRange, target: Expression, property: St
   }
 
   override def assign(context: Context, value: Expression): ExpressionResult = {
-    val targetResult = context.evaluateExpression(target)
-    targetResult match {
-      case targetValue: Value =>
-        val valueResult = context.evaluateExpression(value)
-        valueResult match {
-          case valueValue: Value =>
-            targetValue.setMember(property, valueValue)
-            valueValue
-          case e => e
-        }
-      case e: ExceptionResult => e
-    }
+    context.evaluateExpression(target).flatMap(targetValue => {
+      context.evaluateExpression(value).flatMap(valueValue => {
+        valueValue.definedAt = Some(property)
+        targetValue.setMember(property.value, valueValue)
+        valueValue
+      })
+    })
   }
 }
 
