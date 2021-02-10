@@ -4,7 +4,7 @@ import miksilo.editorParser.parsers.SourceElement
 import miksilo.languageServer.core.language.{Compilation, Phase, SourcePathFromElement}
 import miksilo.languageServer.core.smarts.FileDiagnostic
 import miksilo.lspprotocol.lsp.Diagnostic
-import typeless.ast.{JavaScriptFile, Lambda, Statement}
+import typeless.ast.{JavaScriptFile, Lambda, ScopeLike, Statement}
 import typeless.server.JavaScriptCompilation
 
 import scala.collection.mutable
@@ -66,19 +66,24 @@ class IntValue(value: Int) extends PrimitiveValue[Int](value) {
 class UndefinedValue extends Value {
 }
 
-class ObjectValue(var members: mutable.Map[String, Value] = mutable.Map.empty) extends Value {
+class ObjectValue(var members: mutable.Map[String, Value] = mutable.Map.empty)
+  extends Value with ScopeLike {
 
-  override def getMember(name: String): Option[Value] = {
+  def getMember(name: String): Option[Value] = {
     members.get(name)
   }
 
-  override def setMember(name: String, value: Value): Unit = {
+  def setMember(name: String, value: Value): Unit = {
     val definedAt = members.get(name).flatMap(v => v.definedAt)
     value.definedAt = definedAt.orElse(value.definedAt)
     members.put(name, value)
   }
 
   override def represent(): String = "Object"
+
+  override def memberNames: Iterable[String] = members.keys
+
+  override def getValue(member: String): Value = members(member)
 }
 
 object Value {
@@ -99,10 +104,6 @@ trait Value extends ExpressionResult {
   override def flatMap(f: Value => ExpressionResult): ExpressionResult = {
     f(this)
   }
-
-  def getMember(name: String): Option[Value] = None
-  def setMember(name: String, value: Value): Unit =
-    ???
 
   var definedAt: Option[SourceElement] = None
   var createdAt: SourceElement = null
@@ -142,7 +143,7 @@ class FunctionCorrectness(functionsWithTests: Map[Closure, Closure]) {
 
 
 
-class Scope(parentOption: Option[Scope] = None) {
+class Scope(parentOption: Option[Scope] = None) extends ScopeLike {
 
   def nest(): Scope = new Scope(Some(this))
 
@@ -168,12 +169,19 @@ class Scope(parentOption: Option[Scope] = None) {
       parentOption.fold[ExpressionResult](ReferenceError(element, name))(parent => parent.get(element, name))
     })
   }
+
+  override def memberNames: Iterable[String] =
+    environment.keys.concat(parentOption.fold(Iterable.empty[String])(p => p.memberNames))
+
+  override def getValue(member: String): Value = {
+    environment.getOrElse(member, parentOption.get.getValue(member))
+  }
 }
 
 class Closure(val lambda: Lambda, val state: Scope) extends Value with ClosureLike {
 
   def evaluate(context: Context, argumentValues: collection.Seq[Value]): ExpressionResult = {
-    val newContext = context.withState(state.nest())
+    val newContext = context.withScope(state.nest())
     lambda.arguments.zip(argumentValues).foreach(t => {
       newContext.declareWith(t._1, t._1.name, t._2)
     })
@@ -190,7 +198,7 @@ object InterpreterPhase {
     val javaScriptCompilation = compilation.asInstanceOf[JavaScriptCompilation]
     val program = compilation.program.asInstanceOf[SourcePathFromElement].sourceElement.asInstanceOf[JavaScriptFile]
     val defaultState = StandardLibrary.createState()
-    val context = new Context(false, None, Set.empty, None, defaultState)
+    val context = new Context(false, None, Set.empty, None, None, defaultState)
     val result = program.evaluate(context)
     result match {
       case e: DiagnosticExceptionResult =>
@@ -198,7 +206,7 @@ object InterpreterPhase {
       case _ =>
     }
 
-    val rootEnvironment = context.state.environment
+    val rootEnvironment = context.scope.environment
     val functions: Map[String, Closure] = rootEnvironment.flatMap(s => {
       s._2 match {
         case closure: Closure => Seq(s._1 -> closure)

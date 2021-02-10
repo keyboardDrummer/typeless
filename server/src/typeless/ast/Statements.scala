@@ -19,7 +19,7 @@ case class ExpressionStatement(range: OffsetPointerRange, expression: Expression
   }
 }
 
-case class Name(range: OffsetPointerRange, value: String) extends FileElement
+class Name(val range: OffsetPointerRange, val value: String) extends FileElement
 
 case class Declaration(range: OffsetPointerRange, name: Name, value: Expression) extends Statement {
   override def evaluate(context: Context): StatementResult = {

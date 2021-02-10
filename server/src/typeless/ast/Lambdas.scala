@@ -15,7 +15,7 @@ case class Argument(range: OffsetPointerRange, name: String, varArgs: Boolean) e
 
 case class Lambda(range: OffsetPointerRange, arguments: Vector[Argument], body: Vector[Statement]) extends Expression {
   override def evaluate(context: Context): ExpressionResult = {
-    new Closure(this, context.state)
+    new Closure(this, context.scope)
   }
 
   override def childElements: Seq[SourceElement] = {

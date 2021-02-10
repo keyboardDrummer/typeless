@@ -166,9 +166,10 @@ class ExampleExpressionLanguageTest extends AnyFunSuite with LanguageServerTest 
     assertResult(expected)(definitions)
   }
 
+  // TODO voeg variable code completion case toe.
   test("code completion across methods") {
     val program =
-      """const completionTest = () => {
+      """const getNameTest = () => {
         |  const person = { name: "Remy", age: 32 };
         |  assert.strictEquals(getName(person), "Remy");
         |};
@@ -177,10 +178,9 @@ class ExampleExpressionLanguageTest extends AnyFunSuite with LanguageServerTest 
         |  return person.
         |  // After the dot, the completion results 'name' and 'age' are shown.
         |};
-        |```
         |""".stripMargin
-    val expected = Seq(CompletionItem("name"), CompletionItem("age"))
-    val definitions = complete(server, program, HumanPosition(7, 18)).items
+    val expected = Seq(CompletionItem("name", detail = Some("Remy")), CompletionItem("age", detail = Some("32")))
+    val definitions = complete(server, program, HumanPosition(7, 17)).items
     assertResult(expected)(definitions)
   }
 

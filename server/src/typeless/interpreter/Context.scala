@@ -1,14 +1,14 @@
 package typeless.interpreter
 
 import miksilo.editorParser.parsers.SourceElement
-import typeless._
 import typeless.ast.{Expression, StringValue}
 
 class Context(val allowUndefinedPropertyAccess: Boolean,
               var functionCorrectness: Option[FunctionCorrectness],
               var runningTests: Set[Closure],
               var throwAtElementResult: Option[SourceElement],
-              val state: Scope) {
+              var collectScopeAtElement: Option[SourceElement],
+              val scope: Scope) {
 
 
   def isRunningTest(test: Closure): Boolean = {
@@ -35,26 +35,26 @@ class Context(val allowUndefinedPropertyAccess: Boolean,
   var _this: Option[ObjectValue] = None
 
   def setThis(value: ObjectValue): Unit = _this = Some(value)
-  def getThis(): ObjectValue = _this.head
+  def getThis: ObjectValue = _this.head
 
-  def withState(newState: Scope): Context = {
+  def withScope(newScope: Scope): Context = {
     val result = new Context(allowUndefinedPropertyAccess, functionCorrectness,
-      runningTests, throwAtElementResult, newState)
+      runningTests, throwAtElementResult, collectScopeAtElement, newScope)
     result._this = _this
     result
   }
 
-  def get(element: SourceElement, name: String): ExpressionResult = state.get(element, name)
+  def get(element: SourceElement, name: String): ExpressionResult = scope.get(element, name)
 
   def declareWith(source: SourceElement, name: String, value: Value): Unit = {
     value.definedAt = Some(source)
-    state.declare(name, value)
+    scope.declare(name, value)
   }
 
   def declare(source: SourceElement, name: String): Unit = {
     val defaultValue = new UndefinedValue()
     defaultValue.definedAt = Some(source)
-    state.declare(name, defaultValue)
+    scope.declare(name, defaultValue)
   }
 
   def evaluateString(expression: Expression): ExpressionResult = {
@@ -62,6 +62,15 @@ class Context(val allowUndefinedPropertyAccess: Boolean,
     result match {
       case value: StringValue => value
       case value: Value => TypeError(expression, "string", value)
+      case e: ExceptionResult => e
+    }
+  }
+
+  def evaluateObjectValue(expression: Expression): ExpressionResult = {
+    val result = evaluateExpression(expression)
+    result match {
+      case value: ObjectValue => value
+      case value: Value => TypeError(expression, "object", value)
       case e: ExceptionResult => e
     }
   }

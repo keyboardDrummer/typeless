@@ -40,7 +40,12 @@ case class ObjectLiteral(range: OffsetPointerRange, members: ListMap[String, Exp
 
 case class VariableReference(range: OffsetPointerRange, name: String)
   extends Expression with AssignmentTarget {
-  override def evaluate(context: Context): ExpressionResult = context.get(this, name)
+  override def evaluate(context: Context): ExpressionResult = {
+    if (context.collectScopeAtElement.contains(this)) {
+      return ScopeInformation(context.scope)
+    }
+    context.get(this, name)
+  }
 
   override def assign(context: Context, value: Expression): ExpressionResult = {
     val valueResult = context.evaluateExpression(value)

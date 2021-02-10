@@ -23,10 +23,11 @@ case class BracketAccess(range: OffsetPointerRange, target: Expression, property
   extends Expression with AssignmentTarget {
 
   override def evaluate(context: Context): ExpressionResult = {
-    context.evaluateExpression(target).flatMap(targetValue => {
+    context.evaluateObjectValue(target).flatMap(targetValue => {
+      val targetObject = targetValue.asInstanceOf[ObjectValue]
       context.evaluateString(property).flatMap(propertyValue => {
         val stringValue = propertyValue.asInstanceOf[StringValue]
-        targetValue.getMember(stringValue.value) match {
+        targetObject.getMember(stringValue.value) match {
           case Some(memberValue) => memberValue
           case None => if (context.allowUndefinedPropertyAccess) {
             new UndefinedValue()
@@ -43,11 +44,12 @@ case class BracketAccess(range: OffsetPointerRange, target: Expression, property
   }
 
   override def assign(context: Context, value: Expression): ExpressionResult = {
-    context.evaluateExpression(target).flatMap(targetValue => {
+    context.evaluateObjectValue(target).flatMap(targetValue => {
+      val targetObject = targetValue.asInstanceOf[ObjectValue]
       context.evaluateString(property).flatMap(propertyValue => {
         val stringValue = propertyValue.asInstanceOf[StringValue]
         context.evaluateExpression(value).flatMap(valueValue => {
-          targetValue.setMember(stringValue.value, valueValue)
+          targetObject.setMember(stringValue.value, valueValue)
           valueValue
         })
       })
@@ -55,11 +57,28 @@ case class BracketAccess(range: OffsetPointerRange, target: Expression, property
   }
 }
 
+case class ReturnInformationWithThrow(result: ExpressionResult) extends ExceptionResult {
+
+}
+
+case class ScopeInformation(scope: ScopeLike) extends ExceptionResult {
+
+}
+
+trait ScopeLike {
+  def memberNames: Iterable[String]
+  def getValue(member: String): Value
+}
+
 case class DotAccess(range: OffsetPointerRange, target: Expression, property: Name)
   extends Expression with AssignmentTarget {
   override def evaluate(context: Context): ExpressionResult = {
-    context.evaluateExpression(target).flatMap(targetValue => {
-      targetValue.getMember(property.value) match {
+    context.evaluateObjectValue(target).flatMap(targetValue => {
+      val targetObject = targetValue.asInstanceOf[ObjectValue]
+      if (context.collectScopeAtElement.contains(property)) {
+        return ScopeInformation(targetObject)
+      }
+      targetObject.getMember(property.value) match {
         case Some(memberValue) => memberValue
         case None => if (context.allowUndefinedPropertyAccess) {
           new UndefinedValue()
@@ -71,14 +90,15 @@ case class DotAccess(range: OffsetPointerRange, target: Expression, property: Na
   }
 
   override def childElements: Seq[SourceElement] = {
-    Seq(target)
+    Seq(target, property)
   }
 
   override def assign(context: Context, value: Expression): ExpressionResult = {
-    context.evaluateExpression(target).flatMap(targetValue => {
+    context.evaluateObjectValue(target).flatMap(targetValue => {
+      val targetObject = targetValue.asInstanceOf[ObjectValue]
       context.evaluateExpression(value).flatMap(valueValue => {
         valueValue.definedAt = Some(property)
-        targetValue.setMember(property.value, valueValue)
+        targetObject.setMember(property.value, valueValue)
         valueValue
       })
     })
@@ -101,6 +121,6 @@ case class Assignment(range: OffsetPointerRange, target: AssignmentTarget, value
 
 case class ThisReference(range: OffsetPointerRange) extends Expression {
   override def evaluate(context: Context): ExpressionResult = {
-    context.getThis()
+    context.getThis
   }
 }
