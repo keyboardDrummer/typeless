@@ -50,8 +50,8 @@ object JavaScriptParser extends CommonStringReaderParser with LeftRecursiveCorre
   lazy val lambda: Parser[Lambda] = (lambdaArguments ~< "=>" ~ lambdaBody).
     withSourceRange((range, t) => Lambda(range, t._1, t._2))
 
-  val memberAccess: Parser[MemberAccess] = (expression ~< "." ~ parseIdentifier).
-    withSourceRange((range, t) => MemberAccess(range, t._1, t._2))
+  val memberAccess: Parser[DotAccess] = (expression ~< "." ~ parseIdentifier).
+    withSourceRange((range, t) => DotAccess(range, t._1, t._2))
 
   val assignmentTarget = memberAccess | variableExpression
   val assignment: Parser[Assignment] = (assignmentTarget ~< "=" ~ expression).

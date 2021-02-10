@@ -3,7 +3,7 @@ package typeless.ast
 import miksilo.editorParser.parsers.SourceElement
 import miksilo.editorParser.parsers.editorParsers.OffsetPointerRange
 import typeless._
-import typeless.interpreter.{ClosureLike, Context, ExceptionResult, ExpressionResult, ObjectValue, UndefinedMemberAccess, UndefinedValue, Value}
+import typeless.interpreter.{ClosureLike, Context, ExceptionResult, ExpressionResult, ObjectValue, TypeError, UndefinedMemberAccess, UndefinedValue, Value}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -20,19 +20,52 @@ class New(range: OffsetPointerRange, target: Expression, arguments: Vector[Expre
   }
 }
 
+case class BracketAccess(range: OffsetPointerRange, target: Expression, property: Expression)
+  extends Expression with AssignmentTarget {
 
-case class MemberAccess(range: OffsetPointerRange, target: Expression, name: String)
+  override def evaluate(context: Context): ExpressionResult = {
+    context.evaluateExpression(target).flatMap(targetValue => {
+      context.evaluateString(property).flatMap(propertyValue => {
+        targetValue.getMember(propertyValue.value) match {
+          case Some(memberValue) => memberValue
+          case None => if (context.allowUndefinedPropertyAccess) {
+            new UndefinedValue()
+          } else {
+            UndefinedMemberAccess(this, propertyValue.value, targetValue)
+          }
+        }
+      })
+    })
+  }
+
+  override def childElements: Seq[SourceElement] = {
+    Seq(target)
+  }
+
+  override def assign(context: Context, value: Expression): ExpressionResult = {
+    context.evaluateToValue(target, targetValue => {
+      context.evaluateToString(property, propertyValue => {
+        context.evaluateToValue(value, valueValue => {
+          targetValue.setMember(propertyValue.value, valueValue)
+          valueValue
+        })
+      })
+    })
+  }
+}
+
+case class DotAccess(range: OffsetPointerRange, target: Expression, property: String)
   extends Expression with AssignmentTarget {
   override def evaluate(context: Context): ExpressionResult = {
     val targetResult = context.evaluateExpression(target)
     targetResult match {
       case targetValue: Value =>
-        targetValue.getMember(name) match {
+        targetValue.getMember(property) match {
           case Some(memberValue) => memberValue
           case None => if (context.allowUndefinedPropertyAccess) {
             new UndefinedValue()
           } else {
-            UndefinedMemberAccess(this, name, targetValue)
+            UndefinedMemberAccess(this, property, targetValue)
           }
         }
       case e: ExceptionResult => e
@@ -50,7 +83,7 @@ case class MemberAccess(range: OffsetPointerRange, target: Expression, name: Str
         val valueResult = context.evaluateExpression(value)
         valueResult match {
           case valueValue: Value =>
-            targetValue.setMember(name, valueValue)
+            targetValue.setMember(property, valueValue)
             valueValue
           case e => e
         }

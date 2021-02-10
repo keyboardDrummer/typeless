@@ -20,7 +20,9 @@ case class ReturnedValue(value: Value) extends StatementResult {
 
 
 
+// TODO turn into a monad.
 trait ExpressionResult {
+  def flatMap(f: Value => ExpressionResult): ExpressionResult
 }
 
 trait DiagnosticExceptionResult extends ExceptionResult {
@@ -33,6 +35,8 @@ trait DiagnosticExceptionResult extends ExceptionResult {
 }
 
 trait ExceptionResult extends ExpressionResult with StatementResult {
+
+  override def flatMap(f: Value => ExpressionResult): ExpressionResult = this
 
   override def toExpressionResult(): ExpressionResult = this
 }
@@ -88,8 +92,12 @@ object Value {
   }
 }
 
-
 trait Value extends ExpressionResult {
+
+  override def flatMap(f: Value => ExpressionResult): ExpressionResult = {
+    f(this)
+  }
+
   def getMember(name: String): Option[Value] = None
   def setMember(name: String, value: Value): Unit =
     ???

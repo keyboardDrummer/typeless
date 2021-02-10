@@ -2,7 +2,7 @@ package typeless.interpreter
 
 import miksilo.editorParser.parsers.SourceElement
 import typeless._
-import typeless.ast.Expression
+import typeless.ast.{Expression, StringValue}
 
 class Context(val allowUndefinedPropertyAccess: Boolean,
               var functionCorrectness: Option[FunctionCorrectness],
@@ -55,6 +55,15 @@ class Context(val allowUndefinedPropertyAccess: Boolean,
     val defaultValue = new UndefinedValue()
     defaultValue.definedAt = Some(source)
     state.declare(name, defaultValue)
+  }
+
+  def evaluateString(expression: Expression): ExpressionResult = {
+    val result = evaluateExpression(expression)
+    result match {
+      case value: StringValue => value
+      case value: Value => TypeError(expression, "string", value)
+      case e: ExceptionResult => e
+    }
   }
 
   def evaluateExpression(expression: Expression): ExpressionResult = {
