@@ -43,9 +43,11 @@ case class TypeError(element: SourceElement, expected: String, value: Value) ext
   override def message: String = s"Expected value of type $expected but got '${value.represent()}'"
 }
 
-
-class IntValue(val value: Int) extends Value {
+class PrimitiveValue[T](val value: T) extends Value {
   override def represent(): String = value.toString
+}
+
+class IntValue(value: Int) extends PrimitiveValue[Int](value) {
 }
 
 class UndefinedValue extends Value {
@@ -94,18 +96,66 @@ object Void extends StatementResult {
   override def toExpressionResult(): ExpressionResult = new UndefinedValue()
 }
 
+class FunctionCorrectness(functionsWithTests: Map[Closure, Closure]) {
+  var functionCorrectness = Map.empty[Closure, Boolean]
+
+  def isClosureCorrect(context: Context, closure: Closure): Boolean = {
+    functionCorrectness.get(closure) match {
+      case Some(correct) => correct
+      case None =>
+        val testOption = functionsWithTests.get(closure)
+        testOption.fold(false)(test => {
+          if (context.isRunningTest(test)) {
+            false
+          } else {
+            val testPassed = context.runTest(test) match {
+              case _: ExceptionResult => false
+              case _ => true
+            }
+            functionCorrectness += closure -> testPassed
+            testPassed
+          }
+        })
+    }
+  }
+}
+
 class Context(val allowUndefinedPropertyAccess: Boolean,
+              var functionCorrectness: Option[FunctionCorrectness] = None,
+              var runningTests: Set[Closure] = Set.empty,
               throwAtElementResult: Option[SourceElement] = None,
               val state: Scope = new Scope()) {
 
-  var _this: ObjectValue = null
 
-  def setThis(value: ObjectValue): Unit = _this = value
-  def getThis(): ObjectValue = _this
+  def isRunningTest(test: Closure): Boolean = {
+    runningTests.contains(test)
+  }
+
+
+  def runTest(test: Closure): ExpressionResult = {
+    runningTests += test
+    val result = test.evaluate(this, Seq.empty)
+    runningTests -= test
+    result
+  }
+
+
+  def isClosureCorrect(closureLike: ClosureLike): Boolean = {
+    closureLike match {
+      case closure: Closure =>
+        functionCorrectness.fold(true)(c => c.isClosureCorrect(this, closure))
+      case _ => true
+    }
+  }
+
+  var _this: Option[ObjectValue] = None
+
+  def setThis(value: ObjectValue): Unit = _this = Some(value)
+  def getThis(): ObjectValue = _this.head
 
   def withState(state: Scope): Context = {
-    val result = new Context(allowUndefinedPropertyAccess, state = state)
-    result.setThis(_this)
+    val result = new Context(allowUndefinedPropertyAccess, functionCorrectness, runningTests, state = state)
+    result._this = _this
     result
   }
 
@@ -185,19 +235,27 @@ object InterpreterPhase {
     }
 
     val rootEnvironment = context.state.environment
-    val tests = rootEnvironment.filter(s => {
-      if (!s._1.endsWith("Test")) {
-        false
+    val functions: Map[String, Closure] = rootEnvironment.flatMap(s => {
+      s._2 match {
+        case closure: Closure => Seq(s._1 -> closure)
+        case _ => Seq.empty
+      }
+    }).toMap
+    val testKeyword = "Test"
+    val tests: Map[String, Closure] = functions.flatMap(s => {
+      if (s._1.endsWith(testKeyword) && s._2.lambda.arguments.isEmpty) {
+        Seq(s._1 -> s._2)
       } else {
-        s._2 match {
-          case closure: Closure if closure.lambda.arguments.isEmpty => true
-          case _ => false
-        }
+        Seq.empty
       }
     })
+    val functionsWithTests: Map[Closure, Closure] = tests.flatMap(test => {
+      functions.get(test._1.dropRight(testKeyword.length)).map(f => (f, test._2)).toIterable
+    })
 
+    context.functionCorrectness = Some(new FunctionCorrectness(functionsWithTests))
     tests.foreach(test => {
-      val result = test._2.asInstanceOf[Closure].evaluate(context, Seq.empty)
+      val result = context.runTest(test._2)
       result match {
         case e: ExceptionResult =>
           compilation.diagnostics += FileDiagnostic(compilation.rootFile.get, e.toDiagnostic)

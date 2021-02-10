@@ -30,11 +30,11 @@ object JavaScriptParser extends CommonStringReaderParser with LeftRecursiveCorre
   val multiplication = (expression ~< "*" ~ expression).withSourceRange((range, t) => Multiplication(range, t._1, t._2))
   val modulo = (expression ~< "%" ~ expression).withSourceRange((range, t) => Multiplication(range, t._1, t._2))
   val equalsParser = (expression ~< "==" ~ expression).withSourceRange((range, t) => Equals(range, t._1, t._2))
-
+  val lessThanParser = (expression ~< "<" ~ expression).withSourceRange((range, t) => LessThan(range, t._1, t._2))
   val variableExpression: Parser[VariableReference] = parseIdentifier.withSourceRange((range, name) => VariableReference(range, name))
 
   val newParser: Parser[New] = ("new" ~> expression ~< "(" ~ expression.manySeparated(",", "argument") ~< ")").
-    withSourceRange((range, t) => New(range, t._1, t._2))
+    withSourceRange((range, t) => new New(range, t._1, t._2))
 
   lazy val callExpression: Parser[Call] = (expression ~< "(" ~ expression.manySeparated(",", "argument") ~< ")").
     withSourceRange((range, t) => Call(range, t._1, t._2))
@@ -55,7 +55,7 @@ object JavaScriptParser extends CommonStringReaderParser with LeftRecursiveCorre
   val thisParser = ("this": Parser[String]).withSourceRange((range, _) => ThisReference(range))
   lazy val expression: Parser[Expression] = new Lazy(thisParser | callExpression | lambda | numberLiteral | variableExpression |
     addition | subtraction | multiplication | memberAccess | memberAssignment | modulo | objectLiteral | stringLiteralParser
-    | booleanParser | equalsParser | newParser)
+    | booleanParser | equalsParser | newParser | lessThanParser)
 
   val declaration: Parser[Declaration] = ("const" ~> parseIdentifier ~< "=" ~ expression ~< statementEnd).
     withSourceRange((range, t) => Declaration(range, t._1, t._2))
@@ -64,8 +64,14 @@ object JavaScriptParser extends CommonStringReaderParser with LeftRecursiveCorre
 
   val returnStatement = ("return" ~> expression ~< statementEnd).withSourceRange((range, expr) => ReturnStatement(range, expr))
 
-  val statement: Parser[Statement] = declaration | expressionStatement | returnStatement
-  val statements = statement.*
+  lazy val statement: Parser[Statement] = new Lazy(ifStatement | declaration | expressionStatement | returnStatement)
+  lazy val statements = statement.*
+
+  val singleStatementOrBody = statement.map(s => Vector(s)) | "{" ~> statements ~< "}"
+  val elsePart = ("else" ~> singleStatementOrBody).option.map(o => o.getOrElse(Seq.empty))
+  val ifStatement = ("if" ~> "(" ~> expression ~< ")" ~ singleStatementOrBody ~ elsePart).
+    withSourceRange((range, t) => IfStatement(range, t._1._1, t._1._2, t._2))
+
   lazy val body = "{" ~> statements ~< "}"
   val file: Parser[JavaScriptFile] = statements.withSourceRange((range, body) => JavaScriptFile(range, body))
 

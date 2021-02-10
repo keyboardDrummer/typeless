@@ -5,6 +5,7 @@ import miksilo.lspprotocol.lsp.Diagnostic
 
 import scala.collection.immutable.ListMap
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 
 case class BooleanLiteral(range: OffsetPointerRange, value: Boolean) extends Expression {
   override def evaluate(context: Context): ExpressionResult = ???
@@ -70,6 +71,30 @@ case class VariableReference(range: OffsetPointerRange, name: String) extends Ex
   override def evaluate(context: Context): ExpressionResult = context.get(this, name)
 }
 
+
+class New(range: OffsetPointerRange, target: Expression, arguments: Vector[Expression]) extends Call(range, target, arguments) {
+
+  override def evaluateClosure(context: Context, argumentValues: ArrayBuffer[Value], closure: ClosureLike): ExpressionResult = {
+    // TODO, assing __proto__ field from closure.prototype
+    val newObj = new ObjectValue()
+    context.setThis(newObj)
+    closure.evaluate(context, argumentValues) match {
+      case _: UndefinedValue => newObj
+      case result => result
+    }
+  }
+}
+
+class CorrectCallGaveException(exception: ExceptionResult, call: Call,
+                               closure: ClosureLike, argumentValues: collection.Seq[Value]) extends ExceptionResult {
+  override def element: SourceElement = call
+
+  override def message: String = {
+    val values = argumentValues.map(a => a.represent()).reduce((left, right) => left + ", " + right)
+    s"This function call failed with arguments '$values'."
+  }
+}
+
 case class Call(range: OffsetPointerRange, target: Expression, arguments: Vector[Expression]) extends Expression {
   override def evaluate(context: Context): ExpressionResult = {
     val targetResult = context.evaluateExpression(target)
@@ -83,11 +108,24 @@ case class Call(range: OffsetPointerRange, target: Expression, arguments: Vector
     }
     targetResult match {
       case closure: ClosureLike =>
-        closure.evaluate(context, argumentValues)
+        evaluateClosure(context, argumentValues, closure) match {
+          case exception: ExceptionResult =>
+            if (context.isClosureCorrect(closure)) {
+              new CorrectCallGaveException(exception, this, closure, argumentValues)
+            }
+            else {
+              exception
+            }
+          case result => result
+        }
       case targetValue: Value =>
         TypeError(target, "closure", targetValue)
       case _ => targetResult
     }
+  }
+
+  def evaluateClosure(context: Context, argumentValues: ArrayBuffer[Value], closure: ClosureLike): ExpressionResult = {
+    closure.evaluate(context, argumentValues)
   }
 }
 
@@ -155,54 +193,45 @@ case class Modulo(range: OffsetPointerRange, left: Expression, right: Expression
   override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = ???
 }
 case class Subtraction(range: OffsetPointerRange, left: Expression, right: Expression) extends BinaryExpression {
-  override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = ???
+  override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = {
+    (leftValue, rightValue) match {
+      case (leftInt: IntValue, rightInt: IntValue) => new IntValue(leftInt.value - rightInt.value)
+      case _ => TypeError(this, "supports -", leftValue)
+    }
+  }
 }
 
-case class BooleanValue(value: Boolean) extends Value {
-
+class BooleanValue(value: Boolean) extends PrimitiveValue[Boolean](value) {
 }
+
+case class LessThan(range: OffsetPointerRange, left: Expression, right: Expression) extends BinaryExpression {
+  override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = {
+    (leftValue, rightValue) match {
+      case (leftInt: IntValue, rightInt: IntValue) => new BooleanValue(leftInt.value < rightInt.value)
+      case _ => TypeError(left, "something that supports the '<' operator", leftValue)
+    }
+  }
+}
+
 case class Equals(range: OffsetPointerRange, left: Expression, right: Expression) extends BinaryExpression {
   override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = {
-    BooleanValue(Value.strictEqual(leftValue, rightValue))
+    new BooleanValue(Value.strictEqual(leftValue, rightValue))
   }
 }
 
 case class Multiplication(range: OffsetPointerRange, left: Expression, right: Expression) extends BinaryExpression {
-  override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = ???
+  override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = {
+    (leftValue, rightValue) match {
+      case (leftInt: IntValue, rightInt: IntValue) => new IntValue(leftInt.value * rightInt.value)
+      case _ => ???
+    }
+  }
 }
 case class Addition(range: OffsetPointerRange, left: Expression, right: Expression) extends BinaryExpression {
   override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = {
     (leftValue, rightValue) match {
       case (leftInt: IntValue, rightInt: IntValue) => new IntValue(leftInt.value + rightInt.value)
       case _ => ???
-    }
-  }
-}
-
-case class New(range: OffsetPointerRange, target: Expression, arguments: Vector[Expression]) extends Expression {
-  override def evaluate(context: Context): ExpressionResult = {
-    val targetResult = context.evaluateExpression(target)
-
-    val argumentResults = arguments.map(argument => context.evaluateExpression(argument))
-    val argumentValues = mutable.ArrayBuffer.empty[Value]
-    for(argumentResult <- argumentResults) {
-      argumentResult match {
-        case argumentValue: Value => argumentValues.addOne(argumentValue)
-        case _ => return argumentResult
-      }
-    }
-    targetResult match {
-      case closure: ClosureLike =>
-        // TODO, assing __proto__ field from closure.prototype
-        val newObj = new ObjectValue()
-        context.setThis(newObj)
-        closure.evaluate(context, argumentValues) match {
-          case _: UndefinedValue => newObj
-          case result => result
-        }
-      case targetValue: Value =>
-        TypeError(target, "closure", targetValue)
-      case _ => targetResult
     }
   }
 }
@@ -217,11 +246,11 @@ case class Argument(range: OffsetPointerRange, name: String, varArgs: Boolean) e
 
 case class Lambda(range: OffsetPointerRange, arguments: Vector[Argument], body: Vector[Statement]) extends Expression {
   override def evaluate(context: Context): ExpressionResult = {
-    Closure(this, context.state)
+    new Closure(this, context.state)
   }
 }
 
-case class Closure(lambda: Lambda, state: Scope) extends ClosureLike {
+class Closure(val lambda: Lambda, val state: Scope) extends Value with ClosureLike {
 
   def evaluate(context: Context, argumentValues: collection.Seq[Value]): ExpressionResult = {
     val newContext = context.withState(state.nest())
@@ -268,6 +297,23 @@ object Statement {
       }
     }
     Void
+  }
+}
+
+case class IfStatement(range: OffsetPointerRange, condition: Expression, thenBody: Seq[Statement], elseBody: Seq[Statement]) extends Statement {
+  override def evaluate(context: Context): StatementResult = {
+    val conditionResult = context.evaluateExpression(condition)
+    conditionResult match {
+      case conditionValue: BooleanValue =>
+        val result = if (conditionValue.value) {
+          Statement.evaluateBody(context, thenBody)
+        } else {
+          Statement.evaluateBody(context, elseBody)
+        }
+        result
+      case conditionValue: Value => TypeError(this, "boolean", conditionValue)
+      case e: ExceptionResult => e
+    }
   }
 }
 

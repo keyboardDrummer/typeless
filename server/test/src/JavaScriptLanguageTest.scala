@@ -59,22 +59,24 @@ class ExampleExpressionLanguageTest extends AnyFunSuite with LanguageServerTest 
 
   test("problem in calling function") {
     val program =
-      """function highLevelTest() {
+      """const highLevelTest = () => {
         |  fibonacci("hello");
         |  // The value "hello" passed to fibonacci is not valid. Examples of valid values are: 2, 3
-        |}
+        |};
         |
-        |function fibonacciTest() {
-        |  assert(fibonacci(2) == 3)
-        |  assert(fibonacci(3) == 5)
-        |}
+        |const fibonacciTest = () => {
+        |  assert(fibonacci(3) == 2);
+        |  assert(fibonacci(4) == 3);
+        |  assert(fibonacci(5) == 5);
+        |};
         |
-        |function fibonacci(n) {
-        |  if (n < 2) return 1;
+        |const fibonacci = (n) => {
+        |  if (n == 0) return 0;
+        |  if (n == 1) return 1;
         |  return fibonacci(n-1) + fibonacci(n-2);
-        |}
+        |};
         |""".stripMargin
-    val expected = Seq(Diagnostic(SourceRange(HumanPosition(8, 10), HumanPosition(8, 15)), Some(1), "The member 'foo' is not available on value '3'"))
+    val expected = Seq(Diagnostic(SourceRange(HumanPosition(2, 3), HumanPosition(2, 21)), Some(1), "This function call failed with arguments 'hello'."))
     val diagnostics = getDiagnostics(server, program)
     assertResult(expected)(diagnostics)
   }
