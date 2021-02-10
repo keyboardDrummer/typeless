@@ -1,7 +1,11 @@
+package typeless.interpreter
+
 import miksilo.editorParser.parsers.SourceElement
 import miksilo.languageServer.core.language.{Compilation, Phase, SourcePathFromElement}
 import miksilo.languageServer.core.smarts.FileDiagnostic
 import miksilo.lspprotocol.lsp.Diagnostic
+import typeless.ast.{JavaScriptFile, Lambda, Statement}
+import typeless.server.JavaScriptCompilation
 
 import scala.collection.mutable
 

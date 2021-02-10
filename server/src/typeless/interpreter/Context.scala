@@ -1,4 +1,8 @@
+package typeless.interpreter
+
 import miksilo.editorParser.parsers.SourceElement
+import typeless._
+import typeless.ast.Expression
 
 class Context(val allowUndefinedPropertyAccess: Boolean,
               var functionCorrectness: Option[FunctionCorrectness],

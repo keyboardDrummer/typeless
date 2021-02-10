@@ -3,6 +3,7 @@ import miksilo.languageServer.core.language.Language
 import miksilo.languageServer.server.{LanguageServerTest, MiksiloLanguageServer}
 import miksilo.lspprotocol.lsp.{Diagnostic, FileRange, HumanPosition}
 import org.scalatest.funsuite.AnyFunSuite
+import typeless.server.TypelessLanguageServer
 
 class ExampleExpressionLanguageTest extends AnyFunSuite with LanguageServerTest {
 
@@ -130,5 +131,21 @@ class ExampleExpressionLanguageTest extends AnyFunSuite with LanguageServerTest 
     val expected = Seq(SourceRange(HumanPosition(2, 9), HumanPosition(2, 10)))
     val definitions = gotoDefinition(server, program,  HumanPosition(3, 10)).map(d => d.range)
     assertResult(expected)(definitions)
+  }
+
+  test("complex goto definition") {
+    val program =
+      """const memberAssignments = () => {
+        |  var obj = {};
+        |  obj["name"] = 'Jeroen';
+        |  obj.name = 'Remy';
+        |  obj.name = 'Elise';
+        |  // Goto definition on name will jump to "name" in the assignment "obj.name = 'Remy'";
+        |
+        |  delete obj.name;
+        |  obj.name = 'Jacques';
+        |  // Goto definition on name will jump to "name" in the assignment "obj.name = 'Jacques'";
+        |}
+        |""".stripMargin
   }
 }

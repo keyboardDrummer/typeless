@@ -1,7 +1,11 @@
+package typeless.server
+
 import miksilo.editorParser.parsers.SourceElement
 import miksilo.editorParser.parsers.core.ParseText
 import miksilo.languageServer.core.language.{CompilationCache, SourcePathFromElement}
 import miksilo.lspprotocol.lsp._
+import typeless.JavaScriptLanguage
+import typeless.interpreter.{ExpressionResult, ReturnInformationWithThrow, Value}
 
 class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompilation](JavaScriptLanguage)
   with DefinitionProvider

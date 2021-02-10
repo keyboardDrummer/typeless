@@ -265,9 +265,9 @@ Note that if an object is assigned a new member through the bracket syntax, such
 
 When executing 'go to definition' on a reference, Typeless will jump to the definition that is referenced.
 
-A example of a definition resulting from a variable declaration:
+An example of a definition resulting from a variable declaration:
 ```javascript
-function variables() {
+function variablesTest() {
   const x = 2;
   return x + 3;
   // Goto definition on x will jump to "x" in "const x";
@@ -341,7 +341,7 @@ Both find references and rename on definitions that are not local, which are def
 
 For non-local definitions, Typeless will stream results for a 'find references' request. 
 
-## Value origin tracking
+## typeless.interpreter.Value origin tracking
 Whenever a new value is created, Typeless will remember the location where that value was created together with the value. This 'value origin' is used for the following features.
 
 ### Go to value created

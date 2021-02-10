@@ -1,3 +1,5 @@
+package typeless.server
+
 import miksilo.editorParser.LazyLogging
 import miksilo.editorParser.parsers.core.ParseText
 import miksilo.languageServer.core.language.exceptions.BadInputException

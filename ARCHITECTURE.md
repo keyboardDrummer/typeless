@@ -1,6 +1,6 @@
 
 ### What's the simplest solution?
-Program state for the interpreter mirrors what the programmer is using.
+typeless.Program state for the interpreter mirrors what the programmer is using.
 For every test we know which lines of code it covers. 
 If any of those lines change, the test is marked dirty.
 Dirty tests are queued for being re-run. Tests when run provide diagnostics. Those diagnostics are removed when the test is marked dirty.

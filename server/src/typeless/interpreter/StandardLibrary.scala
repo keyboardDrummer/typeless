@@ -1,3 +1,5 @@
+package typeless.interpreter
+
 import miksilo.editorParser.parsers.SourceElement
 import miksilo.editorParser.parsers.editorParsers.OffsetPointerRange
 
