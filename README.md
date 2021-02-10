@@ -149,25 +149,25 @@ Typeless remembers the values of variables at different points during test execu
 
 For example:
 ```javascript
-function fibonacciTest() {
-  assert(fibonacci(2) == 3)
-  assert(fibonacci(3) == 5)
+function getNameTest() {
+  const remy = { name: "Remy", age: 32 };
+  assert.strictEquals(getName(remy), "Remy");
 }
 
-function fibonacci(n) {
-  // Hovering over the parameter n will show the values "2" and "3".
+function getName(person) {
+  // Hovering over the parameter person will show the value { name: "Remy", age: 32 }.
 
-  return n.
-  // After the dot, completion results for the numbers 3 and 4 are shown, such as toFixed, toExponential and toString.
+  return person.
+  // After the dot, completion results for the 'name' and 'age' are shown
 }
 
-function fibonacciUser() {
-  fibonacci(
-  // After the opening parenthesis, Typeless will suggest calling fibonacci with either 2 or 3.
+function getNameUser() {
+  getName(
+  // After the opening parenthesis, Typeless will suggest calling fibonacci with { name: "Remy", age: 32 }.
 }
 ```
 
-Objects and array are only represented up to one level deep:
+Objects and arrays are only represented up to one level deep:
 ```javascript
 function fooTest() {
   foo({ name: 'Remy', favoriteColors: ['Brown', 'Green']})

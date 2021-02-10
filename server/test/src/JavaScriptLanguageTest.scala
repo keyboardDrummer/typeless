@@ -1,7 +1,7 @@
 import miksilo.editorParser.parsers.editorParsers.SourceRange
 import miksilo.languageServer.core.language.Language
 import miksilo.languageServer.server.{LanguageServerTest, MiksiloLanguageServer}
-import miksilo.lspprotocol.lsp.{Diagnostic, FileRange, HumanPosition}
+import miksilo.lspprotocol.lsp.{CompletionItem, Diagnostic, FileRange, HumanPosition}
 import org.scalatest.funsuite.AnyFunSuite
 import typeless.server.TypelessLanguageServer
 
@@ -150,7 +150,7 @@ class ExampleExpressionLanguageTest extends AnyFunSuite with LanguageServerTest 
     assertResult(expected)(definitions)
   }
 
-  test("deleting a member allows redefining it") {
+  ignore("deleting a member allows redefining it") {
     val program =
       """const memberAssignmentsTest = () => {
         |  const obj = { name: "Remy" };
@@ -164,5 +164,40 @@ class ExampleExpressionLanguageTest extends AnyFunSuite with LanguageServerTest 
     val expected = Seq(SourceRange(HumanPosition(4, 7), HumanPosition(4, 11)))
     val definitions = gotoDefinition(server, program,  HumanPosition(5, 8)).map(d => d.range)
     assertResult(expected)(definitions)
+  }
+
+  test("code completion across methods") {
+    val program =
+      """const completionTest = () => {
+        |  const person = { name: "Remy", age: 32 };
+        |  assert.strictEquals(getName(person), "Remy");
+        |};
+        |
+        |const getName = (person) => {
+        |  return person.
+        |  // After the dot, the completion results 'name' and 'age' are shown.
+        |};
+        |```
+        |""".stripMargin
+    val expected = Seq(CompletionItem("name"), CompletionItem("age"))
+    val definitions = complete(server, program, HumanPosition(7, 18)).items
+    assertResult(expected)(definitions)
+  }
+
+  ignore("call signature help") {
+    val program =
+      """const fibonacciTest = () => {
+        |  fibonacci(2)
+        |  fibonacci(3)
+        |}
+        |
+        |const fibonacci = (n) => {}
+        |
+        |const fibonacciUser = () => {
+        |  fibonacci(
+        |  // After the opening parenthesis, Typeless will suggest calling fibonacci with either 2 or 3.
+        |}
+        |```
+        |""".stripMargin
   }
 }
