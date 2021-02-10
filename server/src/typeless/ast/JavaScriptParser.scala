@@ -34,7 +34,7 @@ object JavaScriptParser extends CommonStringReaderParser with LeftRecursiveCorre
   val modulo = (expression ~< "%" ~ expression).withSourceRange((range, t) => ast.Multiplication(range, t._1, t._2))
   val equalsParser = (expression ~< "==" ~ expression).withSourceRange((range, t) => Equals(range, t._1, t._2))
   val lessThanParser = (expression ~< "<" ~ expression).withSourceRange((range, t) => LessThan(range, t._1, t._2))
-  val variableExpression: Parser[VariableReference] = parseIdentifier.withSourceRange((range, name) => VariableReference(range, name))
+  val variableExpression: Parser[VariableReference] = parseIdentifier.withSourceRange((range, name) => new VariableReference(range, name))
 
   val newParser: Parser[New] = ("new" ~> expression ~< "(" ~ expression.manySeparated(",", "argument") ~< ")").
     withSourceRange((range, t) => new New(range, t._1, t._2))

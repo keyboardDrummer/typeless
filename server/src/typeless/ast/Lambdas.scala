@@ -42,16 +42,21 @@ case class Call(range: OffsetPointerRange, target: Expression, arguments: Vector
 
   override def evaluate(context: Context): ExpressionResult = {
     val targetResult = context.evaluateExpression(target)
+
     val argumentResults = arguments.map(argument => context.evaluateExpression(argument))
     val argumentValues = mutable.ArrayBuffer.empty[Value]
     for(argumentResult <- argumentResults) {
       argumentResult match {
         case argumentValue: Value => argumentValues.addOne(argumentValue)
-        case _ => return argumentResult
+        case query: QueryException => return query
+        case _ => if (!context.skipErrors) return argumentResult
       }
     }
+
     targetResult match {
       case closure: ClosureLike =>
+
+
         evaluateClosure(context, argumentValues, closure) match {
           case exception: ExceptionResult =>
             if (context.isClosureCorrect(closure)) {

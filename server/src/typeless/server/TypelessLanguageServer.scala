@@ -5,7 +5,7 @@ import miksilo.editorParser.parsers.core.ParseText
 import miksilo.languageServer.core.language.{CompilationCache, SourcePathFromElement}
 import miksilo.lspprotocol.lsp._
 import typeless.JavaScriptLanguage
-import typeless.ast.{ScopeInformation, ScopeLike}
+import typeless.ast.{NameLike, ScopeInformation, ScopeLike}
 import typeless.interpreter.{ExpressionResult, ReturnInformationWithThrow, Value}
 
 class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompilation](JavaScriptLanguage)
@@ -25,12 +25,14 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
   def getSourceElementScope(element: SourceElement): Option[ScopeLike] = {
     val context = getCompilation.context
     context.collectScopeAtElement = Some(element)
+    context.throwAtElementResult = None
     for(test <- getCompilation.tests.values) {
       val result = test.evaluate(context, Seq.empty)
       result match {
         case information: ScopeInformation =>
           return Some(information.scope)
-        case _ =>
+        case r =>
+          val x = 3
       }
     }
     None
@@ -77,9 +79,15 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
 
     val sourceElementOption = getSourceElement(text, FilePosition(parameters.textDocument.uri, parameters.position))
     val completions: Seq[CompletionItem] = sourceElementOption.fold(Iterable.empty[CompletionItem])(element => {
-      val scopeOption = getSourceElementScope(element.asInstanceOf[SourcePathFromElement].sourceElement)
+
+      val sourceElement = element.asInstanceOf[SourcePathFromElement].sourceElement
+      val scopeOption = getSourceElementScope(sourceElement)
       scopeOption.fold(Iterable.empty[CompletionItem])(scope => {
-        scope.memberNames.map(member => {
+        val memberNames = sourceElement match {
+          case nameLike: NameLike => scope.memberNames.filter(member => member.startsWith(nameLike.name))
+          case _ => scope.memberNames
+        }
+        memberNames.map(member => {
           CompletionItem(member, detail = Some(scope.getValue(member).represent()))
         })
       })

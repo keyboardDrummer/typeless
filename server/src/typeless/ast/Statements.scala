@@ -19,14 +19,18 @@ case class ExpressionStatement(range: OffsetPointerRange, expression: Expression
   }
 }
 
-class Name(val range: OffsetPointerRange, val value: String) extends FileElement
+trait NameLike {
+  val name: String
+}
+
+class Name(val range: OffsetPointerRange, val name: String) extends FileElement with NameLike
 
 case class Declaration(range: OffsetPointerRange, name: Name, value: Expression) extends Statement {
   override def evaluate(context: Context): StatementResult = {
     val evaluated = context.evaluateExpression(value)
     evaluated match {
       case value: Value =>
-        context.declareWith(name, name.value, value)
+        context.declareWith(name, name.name, value)
         interpreter.Void
       case statementResult: StatementResult => statementResult
     }
@@ -40,10 +44,17 @@ case class Declaration(range: OffsetPointerRange, name: Name, value: Expression)
 object Statement {
   def evaluateBody(context: Context, statements: Seq[Statement]): StatementResult = {
     for(statement <- statements) {
+      if (context.collectScopeAtElement.contains(statement)) {
+        return ScopeInformation(context.scope)
+      }
       statement.evaluate(context) match {
         case interpreter.Void =>
         case returnedValue: ReturnedValue => return returnedValue
-        case exceptionResult: ExceptionResult => return exceptionResult
+        case query: QueryException => return query
+        case exceptionResult: ExceptionResult =>
+          if (context.collectScopeAtElement.isEmpty && context.throwAtElementResult.isEmpty) {
+           return exceptionResult
+          }
       }
     }
     interpreter.Void

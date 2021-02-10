@@ -166,7 +166,29 @@ class ExampleExpressionLanguageTest extends AnyFunSuite with LanguageServerTest 
     assertResult(expected)(definitions)
   }
 
-  // TODO voeg variable code completion case toe.
+  test("code completion on variables") {
+    val program =
+      """const abcGlobal = "hello";
+        |const completionTest = () => {
+        |  abc;
+        |
+        |  const abcLocal = "goodbye";
+        |  abc(abcG);
+        |
+        |};
+        |""".stripMargin
+    val globalItem = CompletionItem("abcGlobal", detail = Some("hello"))
+    val localItem = CompletionItem("abcLocal", detail = Some("goodbye"))
+    assertResult(Seq(globalItem))(complete(server, program, HumanPosition(3, 6)).items)
+
+    assertResult(Seq(localItem, globalItem))(complete(server, program, HumanPosition(6, 6)).items)
+    assertResult(Seq(globalItem))(complete(server, program, HumanPosition(6, 7)).items)
+
+    // TODO enable code completion between statements by inserting No-op statements where needed.
+    // assertResult(Seq(globalItem))(complete(server, program, HumanPosition(4, 4)).items)
+    //assertResult(Seq(globalItem, localItem))(complete(server, program, HumanPosition(7, 4)).items)
+  }
+
   test("code completion across methods") {
     val program =
       """const getNameTest = () => {

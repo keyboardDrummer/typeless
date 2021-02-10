@@ -57,11 +57,12 @@ case class BracketAccess(range: OffsetPointerRange, target: Expression, property
   }
 }
 
-case class ReturnInformationWithThrow(result: ExpressionResult) extends ExceptionResult {
+trait QueryException extends ExceptionResult
+case class ReturnInformationWithThrow(result: ExpressionResult) extends QueryException {
 
 }
 
-case class ScopeInformation(scope: ScopeLike) extends ExceptionResult {
+case class ScopeInformation(scope: ScopeLike) extends QueryException {
 
 }
 
@@ -78,12 +79,12 @@ case class DotAccess(range: OffsetPointerRange, target: Expression, property: Na
       if (context.collectScopeAtElement.contains(property)) {
         return ScopeInformation(targetObject)
       }
-      targetObject.getMember(property.value) match {
+      targetObject.getMember(property.name) match {
         case Some(memberValue) => memberValue
         case None => if (context.allowUndefinedPropertyAccess) {
           new UndefinedValue()
         } else {
-          UndefinedMemberAccess(this, property.value, targetValue)
+          UndefinedMemberAccess(this, property.name, targetValue)
         }
       }
     })
@@ -98,7 +99,7 @@ case class DotAccess(range: OffsetPointerRange, target: Expression, property: Na
       val targetObject = targetValue.asInstanceOf[ObjectValue]
       context.evaluateExpression(value).flatMap(valueValue => {
         valueValue.definedAt = Some(property)
-        targetObject.setMember(property.value, valueValue)
+        targetObject.setMember(property.name, valueValue)
         valueValue
       })
     })

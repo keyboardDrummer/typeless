@@ -1,7 +1,7 @@
 package typeless.interpreter
 
 import miksilo.editorParser.parsers.SourceElement
-import typeless.ast.{Expression, StringValue}
+import typeless.ast.{Expression, ScopeInformation, StringValue}
 
 class Context(val allowUndefinedPropertyAccess: Boolean,
               var functionCorrectness: Option[FunctionCorrectness],
@@ -75,7 +75,13 @@ class Context(val allowUndefinedPropertyAccess: Boolean,
     }
   }
 
+  def skipErrors: Boolean = collectScopeAtElement.nonEmpty || throwAtElementResult.nonEmpty
+
   def evaluateExpression(expression: Expression): ExpressionResult = {
+    if (collectScopeAtElement.contains(expression)) {
+      return ScopeInformation(scope)
+    }
+
     val result = expression.evaluate(this)
     result match {
       case value: Value if value.createdAt == null => value.createdAt = expression
