@@ -76,7 +76,8 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
     assertResult(expected)(diagnostics)
   }
 
-  ignore("problem in calling function") {
+  // TODO, suggest example values in diagnostic
+  test("problem in calling function") {
     val program =
       """const highLevelTest = () => {
         |  fibonacci("hello");
@@ -94,13 +95,11 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |};
         |""".stripMargin
 
-    // TODO, suggest example values in diagnostic
-    val uri = Random.nextInt().toString
-    val relatedInformation = RelatedInformation(FileRange(uri, HumanPosition(13,20).span(3)),
+    val (diagnostics, document) = openAndCheckDocument(server, program)
+    val relatedInformation = RelatedInformation(FileRange(document.uri, HumanPosition(13,20).span(3)),
       "Expected value that supports subtraction but got 'hello'")
     val expected = Seq(Diagnostic(HumanPosition(2, 3).span(18), Some(1),
       "Function call failed with arguments 'hello'", relatedInformation = Seq(relatedInformation)))
-    val (diagnostics, document) = openAndCheckDocument(server, program, uri)
     assertResult(expected)(diagnostics)
 
     val result2 = server.gotoDefinition(DocumentPosition(document, HumanPosition(7, 12))).head.range
