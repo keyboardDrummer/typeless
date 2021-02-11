@@ -1,21 +1,20 @@
 package typeless
 
-import miksilo.languageServer.JVMLanguageServer
 import miksilo.languageServer.core.language.Language
-import miksilo.languageServer.server.LanguageBuilder
+import miksilo.lspprotocol.lsp.LanguageServer
 import typeless.ast.{JavaScriptFile, JavaScriptParser}
 import typeless.interpreter.InterpreterPhase
+import typeless.miksilooverwrite.{BaseJVMLanguageServer, BaseLanguageBuilder}
+import typeless.server.TypelessLanguageServer
 
-object Program extends JVMLanguageServer(Seq()) {
-
-
+object Program extends BaseJVMLanguageServer(Seq(JavaScriptLanguageBuilder)) {
 }
 
-object JavaScriptLanguageBuilder extends LanguageBuilder {
-  override def key: String = "javascript"
+object JavaScriptLanguageBuilder extends BaseLanguageBuilder {
+  override def key: String = "typeless"
 
-  override def build(arguments: collection.Seq[String]): Language = {
-    JavaScriptLanguage
+  override def build(arguments: collection.Seq[String]): LanguageServer = {
+    new TypelessLanguageServer
   }
 }
 

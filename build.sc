@@ -23,14 +23,16 @@ object server extends ScalaModule {
     def testFrameworks = Seq("org.scalatest.tools.Framework")
   }
 
-  def vscode() = T.command {
+  def extensionPath = os.pwd / "vscode-extension"
+  def vscodePrePublish() = T.command {
     val assemblyPath: PathRef = server.assembly()
-
-    val extensionPath = os.pwd / "vscode-extension"
     val outPath = extensionPath  / "out"
 
-    os.copy(assemblyPath.path, outPath / "TypelessLanguageServer.jar", replaceExisting = true)
+    os.copy(assemblyPath.path, outPath / "LanguageServer.jar", replaceExisting = true)
+  }
 
+  def vscode() = T.command {
+    vscodePrePublish()
     val vscode = Process(Seq("code", s"--extensionDevelopmentPath=$extensionPath"), None)
     vscode.!
   }
