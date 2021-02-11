@@ -1,7 +1,7 @@
 'use strict';
 
 import { workspace, ExtensionContext, window, Disposable } from 'vscode';
-import { TransportKind, LanguageClient, LanguageClientOptions, ServerOptions, ErrorAction, CloseAction } from 'vscode-languageclient';
+import { TransportKind, LanguageClient, LanguageClientOptions, ServerOptions, ErrorAction, CloseAction } from 'vscode-languageclient/node';
 import * as path from 'path'
 import * as fs from 'fs'
 import TelemetryReporter from 'vscode-extension-telemetry';
@@ -85,8 +85,7 @@ class JVMMode extends Mode {
         return {
             command: this.getExecutable(),
             options: {
-                env: process.env,
-                stdio: 'pipe'
+                env: process.env
             },
             args: ["-jar", this.jar].concat(args)
         }
@@ -162,7 +161,7 @@ function activateLanguage(mode: Mode, language: LanguageConfiguration): Disposab
 	let clientOptions: LanguageClientOptions = {
 		documentSelector: [{scheme: 'file', language: language.vscodeName}],
 		synchronize: {
-			configurationSection: 'miksilo',
+			configurationSection: 'typeless',
 		},
 		errorHandler:  {
 			error(error: Error) {
@@ -177,7 +176,7 @@ function activateLanguage(mode: Mode, language: LanguageConfiguration): Disposab
 	
 	const start = Date.now()
 	const languageClient = new LanguageClient(
-		'miksilo' + language.vscodeName, 
+		language.vscodeName,
 		language.vscodeName,
 		serverOptions, clientOptions);
 

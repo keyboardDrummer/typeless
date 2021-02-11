@@ -12,18 +12,22 @@ case class FindValue(expression: SourceElement) extends RunMode {
 case class FindScope(element: SourceElement) extends RunMode {
   override def skipErrors = true
 }
+
+class References(val fromReference: Map[NameLike, NameLike]) {
+  val fromDeclaration: Map[NameLike, Set[NameLike]] =
+    fromReference.groupMapReduce(e => e._2)(e => Set(e._1))((a, b) => a ++ b)
+}
+
 class Scan extends RunMode {
   override def skipErrors = false
 
-  private var referenceToDefinition: Map[NameLike, NameLike] = Map.empty
+  private var _referenceToDefinition: Map[NameLike, NameLike] = Map.empty
 
-  def addReference(reference: NameLike, definition: NameLike) = {
-    referenceToDefinition += reference -> definition
+  def addReference(reference: NameLike, definition: NameLike): Unit = {
+    _referenceToDefinition += reference -> definition
   }
 
-  def computeReferencesPerDeclaration(): Map[NameLike, Set[NameLike]] = {
-    referenceToDefinition.groupMapReduce(e => e._2)(e => Set(e._1))((a, b) => a ++ b)
-  }
+  def referenceToDefinition: Map[NameLike, NameLike] = _referenceToDefinition
 }
 
 case class RunConfiguration(file: String,
@@ -61,10 +65,10 @@ class Context(var configuration: RunConfiguration,
     }
   }
 
-  var _this: Option[ObjectValue] = None
+  var _this: Value = new IntValue(42)
 
-  def setThis(value: ObjectValue): Unit = _this = Some(value)
-  def getThis: ObjectValue = _this.head
+  def setThis(value: ObjectValue): Unit = _this = value
+  def getThis: Value = _this
 
   def withScope(newScope: Scope): Context = {
     val result = new Context(configuration, callDepth, functionCorrectness, runningTests, newScope)
@@ -96,7 +100,7 @@ class Context(var configuration: RunConfiguration,
     val result = evaluateExpression(expression)
     result match {
       case value: ObjectValue => value
-      case value: Value => TypeError(expression, "that has fields", value)
+      case value: Value => TypeError(expression, "with fields", value)
       case e: ExceptionResult => e
     }
   }

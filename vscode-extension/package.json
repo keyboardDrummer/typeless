@@ -32,7 +32,9 @@
 		"languages": [
 			{
 				"id": "typeless",
-				"aliases": ["Typeless"],
+				"aliases": [
+					"Typeless"
+				],
 				"extensions": [
 					".tl"
 				],
@@ -56,7 +58,7 @@
 			"type": "object",
 			"title": "Typeless",
 			"properties": {
-				"miksilo.trace.server": {
+				"typeless.trace.server": {
 					"scope": "window",
 					"type": "string",
 					"enum": [
@@ -67,12 +69,12 @@
 					"default": "off",
 					"description": "Traces the communication between VSCode and the language server."
 				},
-				"miksilo.jar": {
+				"typeless.jar": {
 					"scope": "application",
 					"type": "string",
 					"description": "Configures the location of the .jar file for Miksilo."
 				},
-				"java.home": {
+				"typeless.home": {
 					"scope": "machine",
 					"type": "string",
 					"description": "Configures the location of the java home."
@@ -91,7 +93,7 @@
 		"find-java-home": "1.0.0",
 		"path-exists": "^3.0.0",
 		"vscode-extension-telemetry": "0.1.2",
-		"vscode-languageclient": "^5.2.1",
+		"vscode-languageclient": "7.0.0",
 		"vscode-languageserver-protocol": "^3.14.1"
 	},
 	"devDependencies": {

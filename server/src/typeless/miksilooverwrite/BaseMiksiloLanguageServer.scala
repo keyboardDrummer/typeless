@@ -8,7 +8,7 @@ import miksilo.languageServer.server.{SourcePath, TextDocumentManager}
 import miksilo.lspprotocol.lsp._
 
 abstract class BaseMiksiloLanguageServer[MyCompilation <: Compilation](val language: Language) extends LanguageServer
-  with CodeActionProvider
+  // with CodeActionProvider
   with LazyLogging {
 
   var client: LanguageClient = _
@@ -81,10 +81,10 @@ abstract class BaseMiksiloLanguageServer[MyCompilation <: Compilation](val langu
     compilationCache.metrics = client.trackMetric
   }
 
-  override def getCodeActions(parameters: CodeActionParams): Seq[CodeAction] = {
-    val diagnostics = parameters.context.diagnostics.map(d => d.identifier).toSet
-    val compilation = getCompilation
-    compilation.fixesPerDiagnostics.
-      filter(entry => diagnostics.contains(entry._1)).flatMap(entry => entry._2).toSeq
-  }
+//  override def getCodeActions(parameters: CodeActionParams): Seq[CodeAction] = {
+//    val diagnostics = parameters.context.diagnostics.map(d => d.identifier).toSet
+//    val compilation = getCompilation
+//    compilation.fixesPerDiagnostics.
+//      filter(entry => diagnostics.contains(entry._1)).flatMap(entry => entry._2).toSeq
+//  }
 }

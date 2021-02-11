@@ -66,12 +66,12 @@ object Statement {
         case query: QueryException =>
           return query
         case exceptionResult: ExceptionResult =>
-          if (!context.configuration.skipErrors) {
+          if (!context.skipErrors) {
            return exceptionResult
           }
       }
     }
-    interpreter.VoidResult
+    VoidResult
   }
 }
 

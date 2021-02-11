@@ -53,7 +53,9 @@ case class Call(range: OffsetPointerRange, target: Expression, arguments: Vector
       argumentResult match {
         case argumentValue: Value => argumentValues.addOne(argumentValue)
         case query: QueryException => return query
-        case _ => if (!context.skipErrors) return argumentResult
+        case _ =>
+          if (!context.skipErrors)
+            return argumentResult
       }
     }
 

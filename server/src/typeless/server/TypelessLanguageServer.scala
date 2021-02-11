@@ -15,7 +15,7 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
   with CompletionProvider
   with ReferencesProvider
   with RenameProvider
-  with HoverProvider
+  // with HoverProvider
   //  with DocumentSymbolProvider
 {
   def getSourceElementValue(element: SourceElement): Option[Value] = {
@@ -61,14 +61,14 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
     logger.debug("Went into gotoDefinition")
     val text: ParseText = documentManager.getFileParseText(parameters.textDocument.uri)
     val sourceElementOption = getSourceElement(text, FilePosition(parameters.textDocument.uri, parameters.position))
+
     sourceElementOption.fold(Seq.empty[FileRange])(element => {
-      val resultOption = getSourceElementValue(element.asInstanceOf[SourcePathFromElement].sourceElement)
-      val definitions: Seq[SourceElement] = resultOption.fold(Seq.empty[SourceElement])(result => {
-        result.definedAt.toSeq
-      })
-      val ranges: Seq[FileRange] = definitions.flatMap(d =>
-        d.rangeOption.map(r => FileRange(parameters.textDocument.uri, r.toSourceRange)).toSeq)
-      ranges
+      val sourceElement = element.asInstanceOf[SourcePathFromElement].sourceElement
+      sourceElement match {
+        case name: NameLike =>
+          getCompilation.references.fromReference.get(name).
+            toSeq.flatMap(n => n.rangeOption.map(r => FileRange(parameters.textDocument.uri, r.toSourceRange)).toSeq)
+      }
     })
   }
 
@@ -106,7 +106,7 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
       val sourceElement = element.asInstanceOf[SourcePathFromElement].sourceElement
       sourceElement match {
         case name: NameLike =>
-          getCompilation.references(name).
+          getCompilation.references.fromDeclaration(name).
             toSeq.flatMap(n => n.rangeOption.map(r => FileRange(parameters.textDocument.uri, r.toSourceRange)).toSeq)
       }
     })
@@ -149,15 +149,15 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
   override def createCompilation(cache: CompilationCache, rootFile: Option[String]): JavaScriptCompilation =
     new JavaScriptCompilation(cache, rootFile)
 
-  override def hover(request: DocumentPosition): Option[Hover] = {
-    val uri = request.textDocument.uri
-    val text: ParseText = documentManager.getFileParseText(uri)
-    val sourceElementOption = getSourceElement(text, FilePosition(uri, request.position))
-    sourceElementOption.fold[Option[Hover]](None)(element => {
-      val resultOption = getSourceElementValue(element.asInstanceOf[SourcePathFromElement].sourceElement)
-      resultOption.map(result => {
-        Hover(Seq(new RawMarkedString(result.represent())), element.rangeOption.map(r => r.toSourceRange))
-      })
-    })
-  }
+//  override def hover(request: DocumentPosition): Option[Hover] = {
+//    val uri = request.textDocument.uri
+//    val text: ParseText = documentManager.getFileParseText(uri)
+//    val sourceElementOption = getSourceElement(text, FilePosition(uri, request.position))
+//    sourceElementOption.fold[Option[Hover]](None)(element => {
+//      val resultOption = getSourceElementValue(element.asInstanceOf[SourcePathFromElement].sourceElement)
+//      resultOption.map(result => {
+//        Hover(Seq(new RawMarkedString(result.represent())), element.rangeOption.map(r => r.toSourceRange))
+//      })
+//    })
+//  }
 }

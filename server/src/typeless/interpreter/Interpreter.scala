@@ -73,6 +73,7 @@ class IntValue(value: Int) extends PrimitiveValue[Int](value) {
 }
 
 class UndefinedValue extends Value {
+  val b = 3
 }
 
 class ObjectValue(var members: mutable.Map[String, Value] = mutable.Map.empty)
@@ -269,7 +270,7 @@ object InterpreterPhase {
       }
     })
 
-    javaScriptCompilation.references = scan.computeReferencesPerDeclaration()
+    javaScriptCompilation.references = new References(scan.referenceToDefinition)
   }
 }
 

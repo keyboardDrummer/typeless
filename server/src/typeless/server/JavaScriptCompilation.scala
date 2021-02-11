@@ -1,12 +1,11 @@
 package typeless.server
 
 import miksilo.languageServer.core.language.{Compilation, CompilationCache}
-import typeless.ast.NameLike
-import typeless.interpreter.{Closure, Context}
+import typeless.interpreter.{Closure, Context, References}
 
 class JavaScriptCompilation(cache: CompilationCache, rootFile: Option[String])
   extends Compilation(cache: CompilationCache, rootFile: Option[String]) {
-  var references: Map[NameLike, Set[NameLike]] = _
+  var references: References = _
 
   var context: Context = _
 
