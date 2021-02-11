@@ -122,14 +122,13 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |
         |const square = (x) => {
         |  return x + x;
-        |  // The value 9 was expected but it was 6, with a link to the assert.strictEqual that caused this error.
         |}
         |""".stripMargin
 
     val (diagnostics, document) = openAndCheckDocument(server, program)
     val related = RelatedInformation(FileRange(document.uri, HumanPosition(3, 33).span(1)), "9")
     val expected = Seq(Diagnostic(HumanPosition(8, 10).span(5), Some(1),
-      "The value '9' was expected but it was '6'", relatedInformation = Seq(related)))
+      "Expression was '6' while '9' was expected", relatedInformation = Seq(related)))
     assertResult(expected)(diagnostics)
   }
 
@@ -142,7 +141,6 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |
         |const Person = (name) => {
         |  this.name = "Elise";
-        |  // The value "Remy" was expected but it was "Elise".
         |}
         |""".stripMargin
 
@@ -150,7 +148,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
     val (diagnostics, document) = openAndCheckDocument(server, program)
     val related = RelatedInformation(FileRange(document.uri, HumanPosition(2, 49).span(6)), "Remy")
     val expected = Seq(Diagnostic(HumanPosition(6, 15).span(7), Some(1),
-      "The value 'Remy' was expected but it was 'Elise'", relatedInformation = Seq(related)))
+      "Expression was 'Elise' while 'Remy' was expected", relatedInformation = Seq(related)))
     assertResult(expected)(diagnostics)
 
     assertResult(expected)(diagnostics)

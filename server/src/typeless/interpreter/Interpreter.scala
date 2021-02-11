@@ -207,7 +207,7 @@ trait ClosureLike extends Value {
 case class AssertEqualFailure(file: String, actual: Value, expected: Value) extends UserExceptionResult {
 
   override def toDiagnostic: Diagnostic = {
-    val message = s"The value '${expected.represent()}' was expected but it was '${actual.represent()}'"
+    val message = s"Expression was '${actual.represent()}' while '${expected.represent()}' was expected"
     val relatedInformation = RelatedInformation(FileRange(file, expected.createdAt.rangeOption.get.toSourceRange), expected.represent())
     Diagnostic(actual.createdAt.rangeOption.get.toSourceRange, Some(1), message, relatedInformation = Seq(relatedInformation))
   }
