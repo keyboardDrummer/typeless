@@ -150,8 +150,6 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
     val expected = Seq(Diagnostic(HumanPosition(6, 15).span(7), Some(1),
       "Expression was 'Elise' while 'Remy' was expected", relatedInformation = Seq(related)))
     assertResult(expected)(diagnostics)
-
-    assertResult(expected)(diagnostics)
   }
 
   test("basic goto definition") {

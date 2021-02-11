@@ -38,7 +38,7 @@ object JavaScriptParser extends CommonStringReaderParser
   val lessThanParser = (expression ~< "<" ~ expression).withSourceRange((range, t) => LessThan(range, t._1, t._2))
   val variableExpression: Parser[VariableReference] = parseIdentifier.withSourceRange((range, name) => new VariableReference(range, name))
 
-  val newParser: Parser[New] = ("new" ~> expression ~< "(" ~ expression.manySeparated(",", "argument") ~< ")").
+  val newParser: Parser[New] = ("new" ~> coreExpression ~< "(" ~ expression.manySeparated(",", "argument") ~< ")").
     withSourceRange((range, t) => new New(range, t._1, t._2))
 
   lazy val callExpression: Parser[Call] = (expression ~< "(" ~ expression.manySeparated(",", "argument") ~< ")").
@@ -54,7 +54,7 @@ object JavaScriptParser extends CommonStringReaderParser
 
   val bracketAccess: Parser[BracketAccess] = (expression ~< "[" ~ expression ~< "]").
     withSourceRange((range, t) => BracketAccess(range, t._1, t._2))
-  val dotAccess: Parser[DotAccess] = (expression ~< "." ~ name).
+  lazy val dotAccess: Parser[DotAccess] = (expression ~< "." ~ name).
     withSourceRange((range, t) => DotAccess(range, t._1, t._2))
 
   val assignmentTarget: Parser[AssignmentTarget] = dotAccess | variableExpression | bracketAccess
@@ -63,9 +63,12 @@ object JavaScriptParser extends CommonStringReaderParser
 
   val thisParser: Parser[ThisReference] = ("this": Parser[String]).withSourceRange((range, _) => ThisReference(range))
   val parenthesis: Parser[Expression] = "(" ~> expression ~< ")"
-  lazy val expression: Parser[Expression] = new Lazy(newParser | booleanParser | thisParser | callExpression | lambda | numberLiteral | variableExpression |
-    addition | subtraction | multiplication | dotAccess | bracketAccess | assignment | modulo | objectLiteral | stringLiteralParser
-    | equalsParser | lessThanParser | parenthesis)
+
+  lazy val coreExpression: Parser[Expression] = new Lazy(newParser | booleanParser |
+    thisParser | lambda | stringLiteralParser | numberLiteral |
+    addition | subtraction | multiplication | bracketAccess | assignment | modulo | objectLiteral
+    | equalsParser | lessThanParser | variableExpression | parenthesis)
+  lazy val expression: Parser[Expression] = new Lazy(dotAccess | callExpression | coreExpression)
 
   val name = (parseIdentifier | Fallback("", "name")).withSourceRange((range, name) => new Name(range, name))
   val declaration: Parser[Declaration] = ("const" ~> name ~< "=" ~ expression ~< statementEnd).

@@ -2,6 +2,7 @@ package typeless.interpreter
 
 import miksilo.editorParser.parsers.SourceElement
 import miksilo.editorParser.parsers.editorParsers.OffsetPointerRange
+import miksilo.lspprotocol.lsp.Diagnostic
 
 case class NativeCallFailed(expectedValues: Seq[Value]) extends SimpleExceptionResult {
 
@@ -34,8 +35,17 @@ object StandardLibrary {
   }
 }
 
+class NativeException(message: String) extends UserExceptionResult {
+  override def canBeModified: Boolean = true
+
+  override def toDiagnostic: Diagnostic = new Diagnostic(null, severity = Some(1), message = message)
+}
+
 object AssertStrictEqual extends ClosureLike {
   override def evaluate(context: Context, argumentValues: collection.Seq[Value]): ExpressionResult = {
+    if (argumentValues.length != 2) {
+      return new NativeException("strictEqual must be called with 2 arguments")
+    }
     val actual = argumentValues(0)
     val expected = argumentValues(1)
     if (!Value.strictEqual(actual, expected)) {
