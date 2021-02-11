@@ -1,7 +1,7 @@
 package typeless.interpreter
 
 import miksilo.editorParser.parsers.SourceElement
-import typeless.ast.{Expression, NameLike, ScopeInformation, StringValue}
+import typeless.ast.{Expression, NameLike, StringValue}
 
 class References() {
   var referenceToDefinition: Map[NameLike, NameLike] = Map.empty
@@ -120,6 +120,12 @@ class Context(val allowUndefinedPropertyAccess: Boolean,
   }
 }
 
-case class ReturnInformationWithThrow(result: ExpressionResult) extends ExceptionResult {
+trait QueryException extends ExceptionResult
+case class ScopeInformation(scope: ScopeLike) extends QueryException
 
+trait ScopeLike {
+  def memberNames: Iterable[String]
+  def getValue(member: String): Value
 }
+
+case class ReturnInformationWithThrow(result: ExpressionResult) extends QueryException

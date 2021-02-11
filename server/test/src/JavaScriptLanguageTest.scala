@@ -1,6 +1,6 @@
-import miksilo.editorParser.parsers.editorParsers.{SourceRange, TextEdit}
+import miksilo.editorParser.parsers.editorParsers.{Position, SourceRange, TextEdit}
 import miksilo.languageServer.server.LanguageServerTest
-import miksilo.lspprotocol.lsp.{CompletionItem, Diagnostic, HumanPosition}
+import miksilo.lspprotocol.lsp.{CompletionItem, Diagnostic, DocumentPosition, Hover, HoverProvider, HumanPosition, LanguageServer, RawMarkedString, RenameParams, RenameProvider, TextDocumentHoverRequest, WorkspaceEdit}
 import org.scalatest.funsuite.AnyFunSuite
 import typeless.server.TypelessLanguageServer
 
@@ -241,30 +241,26 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
     assertResult(expected2)(definitions2)
   }
 
-  test("rename, local variable, global variable and object member") {
-    val program =
-      """const getNameTest = () => {
-        |  const person = { name: "Remy", age: 32 };
-        |  assert.strictEquals(getName(person), "Remy");
-        |};
-        |
-        |const getName = (person) => {
-        |  return person.name
-        |};
-        |""".stripMargin
-    val expected = Seq(TextEdit(SourceRange(HumanPosition(3, 31), HumanPosition(3, 37)), "remy"))
-    val edits: Iterable[TextEdit] = rename(server, program, HumanPosition(2, 9), "remy").changes.values.flatten.toSeq
-    assertResult(expected)(edits)
-
-    val expected2 = Seq(TextEdit(SourceRange(HumanPosition(7, 17), HumanPosition(7, 21)), "firstName"))
-    val definitions2 = rename(server, program, HumanPosition(2, 20), "firstName").changes.values.flatten.toSeq
-    assertResult(expected2)(definitions2)
+  // TODO move to Miksilo
+  def hover(server: LanguageServer, program: String, position: Position): Option[Hover] = {
+    val document = openDocument(server, program)
+    Option(server.asInstanceOf[HoverProvider].hoverRequest(TextDocumentHoverRequest(DocumentPosition(document, position))))
   }
 
-  // Hover
+  test("hover") {
+    val program =
+      """const personTest = () => {
+        |  const person = { name: "Remy", age: 32 };
+        |  person;
+        |};
+        |""".stripMargin
+    val expected = Hover(Seq(new RawMarkedString("{ name: Remy, age: 32 }")),
+      Some(SourceRange(HumanPosition(3, 3), HumanPosition(3, 9))))
+    val result: Hover = hover(server, program, HumanPosition(3, 5)).get
+    assertResult(expected)(result)
+  }
 
   // TODO add test that verifies tests can't modify global state
-
 
   ignore("call signature help") {
     val program =

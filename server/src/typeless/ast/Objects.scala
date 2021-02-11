@@ -57,19 +57,6 @@ case class BracketAccess(range: OffsetPointerRange, target: Expression, property
   }
 }
 
-trait QueryException extends ExceptionResult
-case class ReturnInformationWithThrow(result: ExpressionResult) extends QueryException {
-
-}
-
-case class ScopeInformation(scope: ScopeLike) extends QueryException {
-
-}
-
-trait ScopeLike {
-  def memberNames: Iterable[String]
-  def getValue(member: String): Value
-}
 
 case class DotAccess(range: OffsetPointerRange, target: Expression, property: Name)
   extends Expression with AssignmentTarget {

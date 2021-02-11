@@ -4,7 +4,7 @@ import miksilo.editorParser.parsers.SourceElement
 import miksilo.languageServer.core.language.{Compilation, Phase, SourcePathFromElement}
 import miksilo.languageServer.core.smarts.FileDiagnostic
 import miksilo.lspprotocol.lsp.Diagnostic
-import typeless.ast.{JavaScriptFile, Lambda, NameLike, ScopeLike, Statement}
+import typeless.ast.{JavaScriptFile, Lambda, NameLike, Statement}
 import typeless.server.JavaScriptCompilation
 
 import scala.collection.mutable
@@ -123,7 +123,7 @@ trait Value extends ExpressionResult {
   def represent(depth: Int = 1): String = "some value"
 }
 
-object Void extends StatementResult {
+object VoidResult extends StatementResult {
   override def toExpressionResult: ExpressionResult = new UndefinedValue()
 }
 

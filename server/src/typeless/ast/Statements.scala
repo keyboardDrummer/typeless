@@ -3,14 +3,14 @@ package typeless.ast
 import miksilo.editorParser.parsers.SourceElement
 import miksilo.editorParser.parsers.editorParsers.OffsetPointerRange
 import miksilo.languageServer.core.language.FileElement
-import typeless.interpreter.{BooleanValue, Context, ExceptionResult, ExpressionResult, ReturnedValue, StatementResult, TypeError, Value}
+import typeless.interpreter.{BooleanValue, Context, ExceptionResult, ExpressionResult, QueryException, ReturnedValue, ScopeInformation, StatementResult, TypeError, Value, VoidResult}
 import typeless.interpreter
 
 case class ExpressionStatement(range: OffsetPointerRange, expression: Expression) extends Statement {
   override def evaluate(context: Context): StatementResult = {
     context.evaluateExpression(expression) match {
-      case _: Value => interpreter.Void
-      case statementResult: StatementResult => statementResult
+      case _: Value => VoidResult
+      case exceptionResult: ExceptionResult => exceptionResult
     }
   }
 
@@ -41,7 +41,7 @@ case class Declaration(range: OffsetPointerRange, name: Name, value: Expression)
     evaluated match {
       case value: Value =>
         context.declareWith(name, name.name, value)
-        interpreter.Void
+        interpreter.VoidResult
       case statementResult: StatementResult => statementResult
     }
   }
@@ -58,16 +58,17 @@ object Statement {
         return ScopeInformation(context.scope)
       }
       statement.evaluate(context) match {
-        case interpreter.Void =>
+        case interpreter.VoidResult =>
         case returnedValue: ReturnedValue => return returnedValue
-        case query: QueryException => return query
+        case query: QueryException =>
+          return query
         case exceptionResult: ExceptionResult =>
           if (context.collectScopeAtElement.isEmpty && context.throwAtElementResult.isEmpty) {
            return exceptionResult
           }
       }
     }
-    interpreter.Void
+    interpreter.VoidResult
   }
 }
 

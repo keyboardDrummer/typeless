@@ -3,7 +3,7 @@ package typeless.ast
 import miksilo.editorParser.parsers.SourceElement
 import miksilo.editorParser.parsers.editorParsers.OffsetPointerRange
 import miksilo.languageServer.core.language.FileElement
-import typeless.interpreter.{Closure, ClosureLike, Context, DiagnosticExceptionResult, ExceptionResult, ExpressionResult, ReturnedValue, StatementResult, TypeError, Value}
+import typeless.interpreter.{Closure, ClosureLike, Context, DiagnosticExceptionResult, ExceptionResult, ExpressionResult, QueryException, ReturnedValue, StatementResult, TypeError, Value}
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer

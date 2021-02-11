@@ -6,8 +6,8 @@ import miksilo.editorParser.parsers.editorParsers.TextEdit
 import miksilo.languageServer.core.language.{CompilationCache, SourcePathFromElement}
 import miksilo.lspprotocol.lsp._
 import typeless.JavaScriptLanguage
-import typeless.ast.{NameLike, ScopeInformation, ScopeLike}
-import typeless.interpreter.{ExpressionResult, ReturnInformationWithThrow, Value}
+import typeless.ast.NameLike
+import typeless.interpreter.{ExpressionResult, ReturnInformationWithThrow, ScopeInformation, ScopeLike, Value}
 import typeless.miksilooverwrite.BaseMiksiloLanguageServer
 
 class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompilation](JavaScriptLanguage)
@@ -15,6 +15,7 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
   with CompletionProvider
   with ReferencesProvider
   with RenameProvider
+  with HoverProvider
   //  with DocumentSymbolProvider
 {
   def getSourceElementValue(element: SourceElement): Option[Value] = {
@@ -22,6 +23,21 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
       case value: Value => Some(value)
       case _ => None
     })
+  }
+
+  def getSourceElementResult(element: SourceElement): Option[ExpressionResult] = {
+    val context = getCompilation.context
+    context.collectScopeAtElement = None
+    context.throwAtElementResult = Some(element)
+    for (test <- getCompilation.tests.values) {
+      val result = test.evaluate(context, Seq.empty)
+      result match {
+        case information: ReturnInformationWithThrow =>
+          return Some(information.result)
+        case _ =>
+      }
+    }
+    None
   }
 
   def getSourceElementScope(element: SourceElement): Option[ScopeLike] = {
@@ -33,20 +49,6 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
       result match {
         case information: ScopeInformation =>
           return Some(information.scope)
-        case _ =>
-      }
-    }
-    None
-  }
-
-  def getSourceElementResult(element: SourceElement): Option[ExpressionResult] = {
-    val context = getCompilation.context
-    context.throwAtElementResult = Some(element)
-    for (test <- getCompilation.tests.values) {
-      val result = test.evaluate(context, Seq.empty)
-      result match {
-        case information: ReturnInformationWithThrow =>
-          return Some(information.result)
         case _ =>
       }
     }
@@ -148,4 +150,17 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
   //
   override def createCompilation(cache: CompilationCache, rootFile: Option[String]): JavaScriptCompilation =
     new JavaScriptCompilation(cache, rootFile)
+
+  override def hoverRequest(request: TextDocumentHoverRequest): Hover = {
+    val uri = request.params.textDocument.uri
+    val text: ParseText = documentManager.getFileParseText(uri)
+    val sourceElementOption = getSourceElement(text, FilePosition(uri, request.params.position))
+    sourceElementOption.fold[Hover](null)(element => {
+      val resultOption = getSourceElementValue(element.asInstanceOf[SourcePathFromElement].sourceElement)
+      val hover: Option[Hover] = resultOption.map(result => {
+        Hover(Seq(new RawMarkedString(result.represent())), element.rangeOption.map(r => r.toSourceRange))
+      })
+      hover.orNull
+    })
+  }
 }
