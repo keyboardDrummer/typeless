@@ -1,4 +1,4 @@
-import miksilo.editorParser.parsers.editorParsers.{Position, SourceRange}
+import miksilo.editorParser.parsers.editorParsers.{Position, SourceRange, TextEdit}
 import miksilo.languageServer.server.LanguageServerTest
 import miksilo.lspprotocol.lsp._
 import org.scalatest.funsuite.AnyFunSuite
@@ -108,9 +108,8 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
     val (diagnostics, document) = openAndCheckDocument(server, program, uri)
     assertResult(expected)(diagnostics)
 
-// TODO Turn this into a hover.
-//    val result2 = server.gotoDefinition(DocumentPosition(document, HumanPosition(8, 12))).head.range
-//    assertResult(HumanPosition(11, 7).span(9))(result2)
+    val result2 = server.gotoDefinition(DocumentPosition(document, HumanPosition(8, 12))).head.range
+    assertResult(HumanPosition(11, 7).span(9))(result2)
   }
 
   test("validating values") {
@@ -262,6 +261,25 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
     val expected2 = Seq(HumanPosition(7, 17).span(4))
     val definitions2 = references(server, program, HumanPosition(2, 20), includeDeclaration = false).map(fr => fr.range)
     assertResult(expected2)(definitions2)
+  }
+
+  // TODO simplify test program
+  test("rename, local variable, global variable and object member") {
+    val program =
+      """const getNameTest = () => {
+        |  const person = { name: "Remy", age: 32 };
+        |  assert.strictEquals(getName(person), "Remy");
+        |};
+        |
+        |const getName = (person) => {
+        |  return person.name
+        |};
+        |""".stripMargin
+    val expected = Set(
+      TextEdit(HumanPosition(2, 9).span(6), "remy"),
+      TextEdit(HumanPosition(3, 31).span(6), "remy"))
+    val edits = rename(server, program, HumanPosition(2, 9), "remy").changes.head._2.toSet
+    assertResult(expected)(edits)
   }
 
   // TODO move to Miksilo

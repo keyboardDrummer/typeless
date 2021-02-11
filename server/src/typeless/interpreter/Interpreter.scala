@@ -270,7 +270,7 @@ object InterpreterPhase {
       }
     })
 
-    javaScriptCompilation.references = new References(scan.referenceToDefinition)
+    javaScriptCompilation.refs = new References(scan.referenceToDefinition)
   }
 }
 

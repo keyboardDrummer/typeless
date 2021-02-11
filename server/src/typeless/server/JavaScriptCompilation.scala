@@ -5,7 +5,7 @@ import typeless.interpreter.{Closure, Context, References}
 
 class JavaScriptCompilation(cache: CompilationCache, rootFile: Option[String])
   extends Compilation(cache: CompilationCache, rootFile: Option[String]) {
-  var references: References = _
+  var refs: References = _
 
   var context: Context = _
 

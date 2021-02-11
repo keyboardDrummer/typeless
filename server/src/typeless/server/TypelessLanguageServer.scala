@@ -16,7 +16,7 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
   with ReferencesProvider
   with RenameProvider
   // with HoverProvider
-  //  with DocumentSymbolProvider
+  // with DocumentSymbolProvider
 {
   def getSourceElementValue(element: SourceElement): Option[Value] = {
     getSourceElementResult(element).flatMap(r => r match {
@@ -66,7 +66,7 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
       val sourceElement = element.asInstanceOf[SourcePathFromElement].sourceElement
       sourceElement match {
         case name: NameLike =>
-          getCompilation.references.fromReference.get(name).
+          getCompilation.refs.fromReference.get(name).
             toSeq.flatMap(n => n.rangeOption.map(r => FileRange(parameters.textDocument.uri, r.toSourceRange)).toSeq)
       }
     })
@@ -106,8 +106,16 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
       val sourceElement = element.asInstanceOf[SourcePathFromElement].sourceElement
       sourceElement match {
         case name: NameLike =>
-          getCompilation.references.fromDeclaration(name).
-            toSeq.flatMap(n => n.rangeOption.map(r => FileRange(parameters.textDocument.uri, r.toSourceRange)).toSeq)
+          val declaration = getCompilation.refs.fromReference.getOrElse(name, name)
+          val references = getCompilation.refs.fromDeclaration(declaration)
+          val resultElements = references ++ (if (parameters.context.includeDeclaration) {
+            Seq(declaration)
+          } else {
+            Seq.empty[NameLike]
+          })
+          resultElements.toSeq.
+            flatMap(n => n.rangeOption).
+            map(r => FileRange(parameters.textDocument.uri, r.toSourceRange))
       }
     })
   }
