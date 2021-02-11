@@ -51,15 +51,13 @@ class Context(val allowUndefinedPropertyAccess: Boolean,
 
   def get(element: SourceElement, name: String): ExpressionResult = scope.get(element, name)
 
-  def declareWith(source: SourceElement, name: String, value: Value): Unit = {
+  def declareWith(source: SourceElement, name: String, value: Value): Boolean = {
     value.definedAt = Some(source)
     scope.declare(name, value)
   }
 
-  def declare(source: SourceElement, name: String): Unit = {
-    val defaultValue = new UndefinedValue()
-    defaultValue.definedAt = Some(source)
-    scope.declare(name, defaultValue)
+  def declare(element: SourceElement, name: String): Unit = {
+    declareWith(element, name, new UndefinedValue)
   }
 
   def evaluateString(expression: Expression): ExpressionResult = {
@@ -93,7 +91,7 @@ class Context(val allowUndefinedPropertyAccess: Boolean,
       case _ =>
     }
     if (throwAtElementResult.contains(expression)) {
-      new ReturnInformationWithThrow(result)
+      ReturnInformationWithThrow(result)
     } else {
       result
     }
@@ -104,6 +102,7 @@ class Context(val allowUndefinedPropertyAccess: Boolean,
       case value: Value =>
         newValue.definedAt = value.definedAt
         newValue.documentation = value.documentation
+        scope.assign(name, newValue)
         value
       case error =>
         // TODO change error?

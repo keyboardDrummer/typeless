@@ -209,6 +209,9 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
   // Rename
   // Hover
 
+  // TODO add test that verifies tests can't modify global state
+
+
   ignore("call signature help") {
     val program =
       """const fibonacciTest = () => {

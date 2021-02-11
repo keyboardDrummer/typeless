@@ -154,18 +154,21 @@ class Scope(parentOption: Option[Scope] = None) extends ScopeLike {
 
   var environment: mutable.HashMap[String, Value] = mutable.HashMap.empty
 
-  def declare(name: String, value: Value): Unit = {
+  def declare(name: String, value: Value): Boolean = {
     if (environment.contains(name)) {
-      ???
+      false
+    } else {
+      environment.put(name, value)
+      true
     }
-    environment.put(name, value)
   }
 
-  def assign(name: String, value: Value): Unit = {
+  def assign(name: String, value: Value): Boolean = {
     if (environment.contains(name)) {
       environment.put(name, value)
+      true
     } else {
-      parentOption.fold(???)(parent => parent.assign(name, value))
+      parentOption.fold(false)(parent => parent.assign(name, value))
     }
   }
 
@@ -252,6 +255,10 @@ object InterpreterPhase {
 
 
 class BooleanValue(value: Boolean) extends PrimitiveValue[Boolean](value) {
+}
+
+case class NotImplementedException(element: SourceElement) extends DiagnosticExceptionResult {
+  override def message: String = "The interpreter functionality required to evaluate this code was not yet implemented."
 }
 
 

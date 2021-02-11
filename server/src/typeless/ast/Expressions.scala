@@ -3,12 +3,12 @@ package typeless.ast
 import miksilo.editorParser.parsers.SourceElement
 import miksilo.editorParser.parsers.editorParsers.OffsetPointerRange
 import miksilo.languageServer.core.language.FileElement
-import typeless.interpreter.{BooleanValue, Context, ExceptionResult, ExpressionResult, IntValue, ObjectValue, TypeError, Value}
+import typeless.interpreter.{BooleanValue, Context, ExceptionResult, ExpressionResult, IntValue, NotImplementedException, ObjectValue, TypeError, Value}
 
 import scala.collection.immutable.ListMap
 
 case class BooleanLiteral(range: OffsetPointerRange, value: Boolean) extends Expression {
-  override def evaluate(context: Context): ExpressionResult = ???
+  override def evaluate(context: Context): ExpressionResult = NotImplementedException(this)
 }
 
 case class StringValue(value: String) extends Value {
@@ -86,7 +86,8 @@ case class WholeNumber(range: OffsetPointerRange, int: Int) extends Expression {
 }
 
 case class Modulo(range: OffsetPointerRange, left: Expression, right: Expression) extends BinaryExpression {
-  override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = ???
+  override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult =
+    NotImplementedException(this)
 }
 case class Subtraction(range: OffsetPointerRange, left: Expression, right: Expression) extends BinaryExpression {
   override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = {
@@ -116,7 +117,7 @@ case class Multiplication(range: OffsetPointerRange, left: Expression, right: Ex
   override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = {
     (leftValue, rightValue) match {
       case (leftInt: IntValue, rightInt: IntValue) => new IntValue(leftInt.value * rightInt.value)
-      case _ => ???
+      case _ => NotImplementedException(this)
     }
   }
 }
@@ -125,7 +126,7 @@ case class Addition(range: OffsetPointerRange, left: Expression, right: Expressi
   override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = {
     (leftValue, rightValue) match {
       case (leftInt: IntValue, rightInt: IntValue) => new IntValue(leftInt.value + rightInt.value)
-      case _ => ???
+      case _ => NotImplementedException(this)
     }
   }
 }

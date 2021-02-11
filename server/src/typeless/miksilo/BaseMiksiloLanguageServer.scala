@@ -1,4 +1,4 @@
-package typeless.server
+package typeless.miksilo
 
 import miksilo.editorParser.LazyLogging
 import miksilo.editorParser.parsers.core.ParseText
