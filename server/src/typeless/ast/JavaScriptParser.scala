@@ -6,7 +6,9 @@ import typeless.ast
 
 import scala.collection.immutable.ListMap
 
-object JavaScriptParser extends CommonStringReaderParser with LeftRecursiveCorrectingParserWriter with WhitespaceParserWriter {
+object JavaScriptParser extends CommonStringReaderParser
+  with LeftRecursiveCorrectingParserWriter
+  with WhitespaceParserWriter {
 
   val statementEnd = ";" | "\n"
 
@@ -46,7 +48,7 @@ object JavaScriptParser extends CommonStringReaderParser with LeftRecursiveCorre
     withSourceRange((range, name) => Argument(range, name._2, name._1.isEmpty))
   val arguments: Parser[Vector[Argument]] = "(" ~> argument.manySeparated(",", "argument") ~< ")"
   lazy val lambdaBody = body | expression.map(expr => Vector(ExpressionStatement(expr.range, expr)))
-  val lambdaArguments: JavaScriptParser.ParserBuilder[Vector[Argument]] = arguments | argument.map(a => Vector(a))
+  val lambdaArguments: Parser[Vector[Argument]] = arguments | argument.map(a => Vector(a))
   lazy val lambda: Parser[Lambda] = (lambdaArguments ~< "=>" ~ lambdaBody).
     withSourceRange((range, t) => Lambda(range, t._1, t._2))
 

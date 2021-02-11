@@ -86,7 +86,7 @@ class ObjectValue(var members: mutable.Map[String, Value] = mutable.Map.empty)
     if (depth == 0) {
       "Object"
     } else {
-      val membersString = members.map(e => e._1 + ": " + e._2.represent(depth - 1)).reduce((l,r) => l + ", " + r)
+      val membersString = members.map(e => e._1 + ": " + e._2.represent(depth - 1)).mkString(", ")
       s"{ $membersString }"
     }
   }

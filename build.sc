@@ -32,7 +32,7 @@ object server extends ScalaModule {
   }
 
   def vscode() = T.command {
-    vscodePrePublish()
+    vscodePrePublish()()
     val vscode = Process(Seq("code", s"--extensionDevelopmentPath=$extensionPath"), None)
     vscode.!
   }

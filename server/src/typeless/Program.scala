@@ -19,8 +19,8 @@ object JavaScriptLanguageBuilder extends BaseLanguageBuilder {
 }
 
 object JavaScriptLanguage extends Language {
-  val parsePhase = Language.getCachingParsePhase[JavaScriptFile]((file, uri) => file.addFile(uri),
-    JavaScriptParser.javaScript.getWholeInputParser(), indentationSensitive = false)
+  val parsePhase = Language.getParsePhase[JavaScriptFile]((file, uri) => file.addFile(uri),
+    JavaScriptParser.javaScript.getWholeInputParser())
 
   compilerPhases = List(parsePhase, InterpreterPhase.phase)
 }
