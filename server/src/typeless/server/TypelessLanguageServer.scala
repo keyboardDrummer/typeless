@@ -2,6 +2,7 @@ package typeless.server
 
 import miksilo.editorParser.parsers.SourceElement
 import miksilo.editorParser.parsers.core.ParseText
+import miksilo.editorParser.parsers.editorParsers.TextEdit
 import miksilo.languageServer.core.language.{CompilationCache, SourcePathFromElement}
 import miksilo.lspprotocol.lsp._
 import typeless.JavaScriptLanguage
@@ -11,10 +12,10 @@ import typeless.miksilooverwrite.BaseMiksiloLanguageServer
 
 class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompilation](JavaScriptLanguage)
   with DefinitionProvider
-  with ReferencesProvider
   with CompletionProvider
+  with ReferencesProvider
+  with RenameProvider
   //  with DocumentSymbolProvider
-  //  with RenameProvider
 {
   def getSourceElementValue(element: SourceElement): Option[Value] = {
     getSourceElementResult(element).flatMap(r => r match {
@@ -32,8 +33,7 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
       result match {
         case information: ScopeInformation =>
           return Some(information.scope)
-        case r =>
-          val x = 3
+        case _ =>
       }
     }
     None
@@ -112,6 +112,13 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
     })
   }
 
+  override def rename(params: RenameParams): WorkspaceEdit = {
+    val locations = references(ReferencesParams(params.textDocument, params.position, ReferenceContext(true)))
+    WorkspaceEdit(locations.groupBy(l => l.uri).map(t => {
+      (t._1, t._2.map(r => TextEdit(r.range, params.newName)))
+    }))
+  }
+
   //
   //  override def documentSymbols(params: DocumentSymbolParams): Seq[SymbolInformation] = {
   //    val proofs = getCompilation.proofs
@@ -139,12 +146,6 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
   //      })
   //  }
   //
-  //  override def rename(params: RenameParams): WorkspaceEdit = {
-  //    val locations = references(ReferencesParams(params.textDocument, params.position, ReferenceContext(true)))
-  //    WorkspaceEdit(locations.groupBy(l => l.uri).map(t => {
-  //      (t._1, t._2.map(r => TextEdit(r.range, params.newName)))
-  //    }))
-  //  }
   override def createCompilation(cache: CompilationCache, rootFile: Option[String]): JavaScriptCompilation =
     new JavaScriptCompilation(cache, rootFile)
 }

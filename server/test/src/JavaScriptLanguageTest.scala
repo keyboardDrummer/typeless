@@ -1,4 +1,4 @@
-import miksilo.editorParser.parsers.editorParsers.SourceRange
+import miksilo.editorParser.parsers.editorParsers.{SourceRange, TextEdit}
 import miksilo.languageServer.server.LanguageServerTest
 import miksilo.lspprotocol.lsp.{CompletionItem, Diagnostic, HumanPosition}
 import org.scalatest.funsuite.AnyFunSuite
@@ -221,7 +221,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
     assertResult(expected)(definitions)
   }
 
-  test("references") {
+  test("references, local variable, global variable and object member") {
     val program =
       """const getNameTest = () => {
         |  const person = { name: "Remy", age: 32 };
@@ -241,7 +241,26 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
     assertResult(expected2)(definitions2)
   }
 
-  // Rename
+  test("rename, local variable, global variable and object member") {
+    val program =
+      """const getNameTest = () => {
+        |  const person = { name: "Remy", age: 32 };
+        |  assert.strictEquals(getName(person), "Remy");
+        |};
+        |
+        |const getName = (person) => {
+        |  return person.name
+        |};
+        |""".stripMargin
+    val expected = Seq(TextEdit(SourceRange(HumanPosition(3, 31), HumanPosition(3, 37)), "remy"))
+    val edits: Iterable[TextEdit] = rename(server, program, HumanPosition(2, 9), "remy").changes.values.flatten.toSeq
+    assertResult(expected)(edits)
+
+    val expected2 = Seq(TextEdit(SourceRange(HumanPosition(7, 17), HumanPosition(7, 21)), "firstName"))
+    val definitions2 = rename(server, program, HumanPosition(2, 20), "firstName").changes.values.flatten.toSeq
+    assertResult(expected2)(definitions2)
+  }
+
   // Hover
 
   // TODO add test that verifies tests can't modify global state
