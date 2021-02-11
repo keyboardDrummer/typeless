@@ -73,7 +73,6 @@ class IntValue(value: Int) extends PrimitiveValue[Int](value) {
 }
 
 class UndefinedValue extends Value {
-  val b = 3
 }
 
 class ObjectValue(var members: mutable.Map[String, Value] = mutable.Map.empty)
@@ -135,29 +134,7 @@ object VoidResult extends StatementResult {
   override def toExpressionResult: ExpressionResult = new UndefinedValue()
 }
 
-class FunctionCorrectness(functionsWithTests: Map[Closure, Closure]) {
-  var functionCorrectness = Map.empty[Closure, Boolean]
 
-  def isClosureCorrect(context: Context, closure: Closure): Boolean = {
-    functionCorrectness.get(closure) match {
-      case Some(correct) => correct
-      case None =>
-        val testOption = functionsWithTests.get(closure)
-        testOption.fold(false)(test => {
-          if (context.isRunningTest(test)) {
-            false
-          } else {
-            val testPassed = context.runTest(test) match {
-              case _: ExceptionResult => false
-              case _ => true
-            }
-            functionCorrectness += closure -> testPassed
-            testPassed
-          }
-        })
-    }
-  }
-}
 
 
 
@@ -211,77 +188,16 @@ class Closure(val lambda: Lambda, val state: Scope) extends Value with ClosureLi
   }
 }
 
-object InterpreterPhase {
 
-  val phase = Phase("interpreter", "where the interpreting happens", interpret)
-
-  val maxCallDepth = 100
-
-  def interpret(compilation: Compilation): Unit = {
-
-    val uri = compilation.rootFile.get
-    val javaScriptCompilation = compilation.asInstanceOf[JavaScriptCompilation]
-    val program = compilation.program.asInstanceOf[SourcePathFromElement].sourceElement.asInstanceOf[JavaScriptFile]
-    val defaultState = StandardLibrary.createState()
-
-    val scan = new Scan()
-    val context = new Context(RunConfiguration(uri, maxCallDepth = maxCallDepth, allowUndefinedPropertyAccess = false, mode = scan),
-      0,
-      functionCorrectness = None,
-      runningTests = Set.empty,
-      scope = defaultState)
-    val result = program.evaluate(context)
-    result match {
-      case e: UserExceptionResult =>
-        compilation.diagnostics += FileDiagnostic(uri, e.toDiagnostic)
-      case _ =>
-    }
-
-    val rootEnvironment = context.scope.environment
-    val functions: Map[String, Closure] = rootEnvironment.flatMap(s => {
-      s._2 match {
-        case closure: Closure => Seq(s._1 -> closure)
-        case _ => Seq.empty
-      }
-    }).toMap
-    val testKeyword = "Test"
-    val tests: Map[String, Closure] = functions.flatMap(s => {
-      if (s._1.endsWith(testKeyword) && s._2.lambda.arguments.isEmpty) {
-        Seq(s._1 -> s._2)
-      } else {
-        Seq.empty
-      }
-    })
-    javaScriptCompilation.tests = tests
-    val functionsWithTests: Map[Closure, Closure] = tests.flatMap(test => {
-      functions.get(test._1.dropRight(testKeyword.length)).map(f => (f, test._2)).toIterable
-    })
-
-    context.functionCorrectness = Some(new FunctionCorrectness(functionsWithTests))
-
-    javaScriptCompilation.context = context
-
-    tests.foreach(test => {
-      val result = context.runTest(test._2)
-      result match {
-        case e: UserExceptionResult =>
-          compilation.diagnostics += FileDiagnostic(compilation.rootFile.get, e.toDiagnostic)
-        case _ =>
-      }
-    })
-
-    javaScriptCompilation.refs = new References(scan.referenceToDefinition)
-  }
-}
 
 
 class BooleanValue(value: Boolean) extends PrimitiveValue[Boolean](value) {
 }
 
 case class NotImplementedException(element: SourceElement) extends SimpleExceptionResult {
-  override def message: String = "The interpreter functionality required to evaluate this code was not yet implemented."
+  override def message: String =
+    "The interpreter functionality required to evaluate this code was not yet implemented."
 }
-
 
 trait ClosureLike extends Value {
   def evaluate(context: Context, argumentValues: collection.Seq[Value]): ExpressionResult

@@ -8,7 +8,7 @@ import typeless.interpreter.{BooleanValue, Context, ExceptionResult, ExpressionR
 import scala.collection.immutable.ListMap
 
 case class BooleanLiteral(range: OffsetPointerRange, value: Boolean) extends Expression {
-  override def evaluate(context: Context): ExpressionResult = NotImplementedException(this)
+  override def evaluate(context: Context): ExpressionResult = new BooleanValue(value)
 }
 
 case class StringValue(value: String) extends Value {

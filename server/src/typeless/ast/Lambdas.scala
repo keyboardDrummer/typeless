@@ -62,23 +62,24 @@ case class Call(range: OffsetPointerRange, target: Expression, arguments: Vector
     targetResult match {
       case closure: ClosureLike =>
 
-        if (context.callDepth > context.configuration.maxCallDepth) {
+        if (context.callStack.length > context.configuration.maxCallDepth) {
           return MaxCallDepthReached(this)
         }
-        context.callDepth += 1
-
-        val result = evaluateClosure(context, argumentValues, closure) match {
+        context.callStack.addOne(closure)
+        val result = evaluateClosure(context, argumentValues, closure)
+        context.callStack.remove(context.callStack.length - 1)
+        val modifiedResult = result match {
           case exception: UserExceptionResult =>
-            if (exception.canBeModified && context.isClosureCorrect(closure)) {
+            val currentClosureCanBeWrong = !context.isClosureCorrect(context.callStack.last)
+            if (exception.canBeModified && context.isClosureCorrect(closure) && currentClosureCanBeWrong) {
               new CorrectCallGaveException(context.configuration.file, exception, this, closure, argumentValues)
             }
             else {
               exception
             }
-          case result => result
+          case _ => result
         }
-        context.callDepth -= 1
-        result
+        modifiedResult
       case targetValue: Value =>
         TypeError(target, "that can be called", targetValue)
       case _ => targetResult

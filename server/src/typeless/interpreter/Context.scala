@@ -3,6 +3,8 @@ package typeless.interpreter
 import miksilo.editorParser.parsers.SourceElement
 import typeless.ast.{Expression, NameLike, StringValue}
 
+import scala.collection.mutable
+
 trait RunMode {
   def skipErrors: Boolean
 }
@@ -40,10 +42,18 @@ case class RunConfiguration(file: String,
 }
 
 class Context(var configuration: RunConfiguration,
-              var callDepth: Int,
+              val callStack: mutable.ArrayBuffer[ClosureLike],
               var functionCorrectness: Option[FunctionCorrectness],
               var runningTests: Set[Closure],
               val scope: Scope) {
+
+  def this(configuration: RunConfiguration, scope: Scope) = {
+    this(configuration, mutable.ArrayBuffer.empty, None, Set.empty, scope)
+  }
+
+  def withFreshCallStack(): Context = {
+    new Context(configuration, mutable.ArrayBuffer.empty, functionCorrectness, runningTests, scope)
+  }
 
   def isRunningTest(test: Closure): Boolean = {
     runningTests.contains(test)
@@ -51,7 +61,9 @@ class Context(var configuration: RunConfiguration,
 
   def runTest(test: Closure): ExpressionResult = {
     runningTests += test
+    callStack.addOne(test)
     val result = test.evaluate(this, Seq.empty)
+    callStack.remove(callStack.length - 1)
     runningTests -= test
     result
   }
@@ -71,7 +83,7 @@ class Context(var configuration: RunConfiguration,
   def getThis: Value = _this
 
   def withScope(newScope: Scope): Context = {
-    val result = new Context(configuration, callDepth, functionCorrectness, runningTests, newScope)
+    val result = new Context(configuration, callStack, functionCorrectness, runningTests, newScope)
     result._this = _this
     result
   }

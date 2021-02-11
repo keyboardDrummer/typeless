@@ -63,9 +63,9 @@ object JavaScriptParser extends CommonStringReaderParser
 
   val thisParser: Parser[ThisReference] = ("this": Parser[String]).withSourceRange((range, _) => ThisReference(range))
   val parenthesis: Parser[Expression] = "(" ~> expression ~< ")"
-  lazy val expression: Parser[Expression] = new Lazy(newParser | thisParser | callExpression | lambda | numberLiteral | variableExpression |
+  lazy val expression: Parser[Expression] = new Lazy(newParser | booleanParser | thisParser | callExpression | lambda | numberLiteral | variableExpression |
     addition | subtraction | multiplication | dotAccess | bracketAccess | assignment | modulo | objectLiteral | stringLiteralParser
-    | booleanParser | equalsParser | lessThanParser | parenthesis)
+    | equalsParser | lessThanParser | parenthesis)
 
   val name = (parseIdentifier | Fallback("", "name")).withSourceRange((range, name) => new Name(range, name))
   val declaration: Parser[Declaration] = ("const" ~> name ~< "=" ~ expression ~< statementEnd).

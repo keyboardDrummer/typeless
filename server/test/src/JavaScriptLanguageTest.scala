@@ -322,16 +322,22 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
   test("infinite recursion stops") {
     val program =
       """const neverStopsTest = () => {
-        |  neverStops();
+        |  canStop(true);
         |}
         |
-        |const neverStops = () => {
-        |  neverStops();
+        |const canStopTest = () => {
+        |  canStop(false);
+        |}
+        |
+        |const canStop = (forever) => {
+        |  if (forever)
+        |    canStop(forever);
         |}
         |""".stripMargin
 
-    val expected = Seq(Diagnostic(HumanPosition(6, 3).span(12), Some(1), "Call takes too long for a test"))
-    val diagnostics = getDiagnostics(server, program)
+    val (diagnostics, document) = openAndCheckDocument(server, program)
+    val related = RelatedInformation(FileRange(document.uri, HumanPosition(11, 5).span(16)), "Call takes too long for a test")
+    val expected = Seq(Diagnostic(HumanPosition(2, 3).span(13), Some(1), "Function call failed with arguments 'true'", relatedInformation = Seq(related)))
     assertResult(expected)(diagnostics)
   }
 }
