@@ -1,12 +1,13 @@
-import miksilo.editorParser.parsers.editorParsers.{Position, SourceRange, TextEdit}
+import miksilo.editorParser.parsers.editorParsers.{Position, SourceRange}
 import miksilo.languageServer.server.LanguageServerTest
-import miksilo.lspprotocol.lsp.{CompletionItem, Diagnostic, DocumentPosition, Hover, HoverProvider, HumanPosition, LanguageServer, RawMarkedString, RenameParams, RenameProvider, TextDocumentHoverRequest, WorkspaceEdit}
+import miksilo.lspprotocol.lsp._
 import org.scalatest.funsuite.AnyFunSuite
 import typeless.server.TypelessLanguageServer
 
 class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
 
   val server = new TypelessLanguageServer()
+
 
   test("first example test") {
 
@@ -275,7 +276,6 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |  fibonacci(
         |  // After the opening parenthesis, Typeless will suggest calling fibonacci with either 2 or 3.
         |}
-        |```
         |""".stripMargin
   }
 }

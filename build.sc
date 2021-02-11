@@ -14,6 +14,7 @@ object server extends ScalaModule {
   )
 
   def scalaVersion = "2.13.3"
+
   override def ivyDeps = Agg(ivy"com.github.keyboardDrummer::languageserver::0.1.8")
 
   object test extends Tests {
