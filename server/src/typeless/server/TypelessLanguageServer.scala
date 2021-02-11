@@ -68,6 +68,7 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
         case name: NameLike =>
           getCompilation.refs.fromReference.get(name).
             toSeq.flatMap(n => n.rangeOption.map(r => FileRange(parameters.textDocument.uri, r.toSourceRange)).toSeq)
+        case _ => Seq.empty
       }
     })
   }
@@ -116,6 +117,7 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
           resultElements.toSeq.
             flatMap(n => n.rangeOption).
             map(r => FileRange(parameters.textDocument.uri, r.toSourceRange))
+        case _ => Seq.empty
       }
     })
   }
