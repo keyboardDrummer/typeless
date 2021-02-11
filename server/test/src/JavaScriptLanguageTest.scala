@@ -53,7 +53,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |  // The member 'foo' is not available on value '3'.
         |}
         |""".stripMargin
-    val expected = Seq(Diagnostic(SourceRange(HumanPosition(8, 10), HumanPosition(8, 15)), Some(1), "Expected value of type object but got '3'"))
+    val expected = Seq(Diagnostic(HumanPosition(8, 10).span(5), Some(1), "Expected value of type object but got '3'"))
     val diagnostics = getDiagnostics(server, program)
     assertResult(expected)(diagnostics)
   }
@@ -70,7 +70,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |  // The member 'foo' is not available on value '3'.
         |};
         |""".stripMargin
-    val expected = Seq(Diagnostic(SourceRange(HumanPosition(7, 10), HumanPosition(7, 15)), Some(1), "The member 'bar' is not available on value '{ foo: Remy }'"))
+    val expected = Seq(Diagnostic(HumanPosition(7, 10).span(5), Some(1), "The member 'bar' is not available on value '{ foo: Remy }'"))
     val diagnostics = getDiagnostics(server, program)
     assertResult(expected)(diagnostics)
   }
@@ -120,7 +120,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
 
     val uri = Random.nextInt().toString
     val related = RelatedInformation(FileRange(uri, HumanPosition(3, 33).span(1)), "9")
-    val expected = Seq(Diagnostic(SourceRange(HumanPosition(8, 10), HumanPosition(8, 15)), Some(1),
+    val expected = Seq(Diagnostic(HumanPosition(8, 10).span(5), Some(1),
       "The value '9' was expected but it was '6'", relatedInformation = Seq(related)))
     val diagnostics = openAndCheckDocument(server, program, uri)._1
     assertResult(expected)(diagnostics)
@@ -138,7 +138,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |}
         |""".stripMargin
 
-    val expected = Seq(Diagnostic(SourceRange(HumanPosition(6, 15), HumanPosition(6, 22)), Some(1), "The value 'Remy' was expected but it was 'Elise'."))
+    val expected = Seq(Diagnostic(HumanPosition(6, 15).span(7), Some(1), "The value 'Remy' was expected but it was 'Elise'."))
     val diagnostics = getDiagnostics(server, program)
     assertResult(expected)(diagnostics)
   }
@@ -152,7 +152,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |}
         |""".stripMargin
 
-    val expected = Seq(SourceRange(HumanPosition(2, 9), HumanPosition(2, 10)))
+    val expected = Seq(HumanPosition(2, 9).span(1))
     val definitions = gotoDefinition(server, program,  HumanPosition(3, 10)).map(d => d.range)
     assertResult(expected)(definitions)
   }
@@ -168,8 +168,8 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |  // Goto definition on name will jump to "name" in the assignment "obj.name = 'Remy'";
         |}
         |""".stripMargin
-    // TODO enable jumping a position forward in a line to get a range
-    val expected = Seq(SourceRange(HumanPosition(4, 7), HumanPosition(4, 11)))
+
+    val expected = Seq(HumanPosition(4, 7).span(4))
     val definitions = gotoDefinition(server, program,  HumanPosition(6, 8)).map(d => d.range)
     assertResult(expected)(definitions)
   }
@@ -184,8 +184,8 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |  // Goto definition on name will jump to "name" in the assignment "obj.name = 'Jacques'";
         |}
         |""".stripMargin
-    // TODO enable jumping a position forward in a line to get a range
-    val expected = Seq(SourceRange(HumanPosition(4, 7), HumanPosition(4, 11)))
+
+    val expected = Seq(HumanPosition(4, 7).span(4))
     val definitions = gotoDefinition(server, program,  HumanPosition(5, 8)).map(d => d.range)
     assertResult(expected)(definitions)
   }
@@ -241,11 +241,11 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |  return person.name
         |};
         |""".stripMargin
-    val expected = Seq(SourceRange(HumanPosition(3, 31), HumanPosition(3, 37)))
+    val expected = Seq(HumanPosition(3, 31).span(6))
     val definitions = references(server, program, HumanPosition(2, 9), includeDeclaration = false).map(fr => fr.range)
     assertResult(expected)(definitions)
 
-    val expected2 = Seq(SourceRange(HumanPosition(7, 17), HumanPosition(7, 21)))
+    val expected2 = Seq(HumanPosition(7, 17).span(4))
     val definitions2 = references(server, program, HumanPosition(2, 20), includeDeclaration = false).map(fr => fr.range)
     assertResult(expected2)(definitions2)
   }
@@ -264,7 +264,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |};
         |""".stripMargin
     val expected = Hover(Seq(new RawMarkedString("{ name: Remy, age: 32 }")),
-      Some(SourceRange(HumanPosition(3, 3), HumanPosition(3, 9))))
+      Some(HumanPosition(3, 3).span(6)))
     val result: Hover = hover(server, program, HumanPosition(3, 5)).get
     assertResult(expected)(result)
   }
