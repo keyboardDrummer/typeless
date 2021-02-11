@@ -48,34 +48,30 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
 
   test("basic crash test") {
     val program =
-      """// The function 'fibonacciTest' is recognized as a test.
-        |const fibonacciTest = () => {
+      """const fibonacciTest = () => {
         |  assert.equal(fibonacci(3), 2);
         |}
         |
         |const fibonacci = (n) => {
         |  return n.foo;
-        |  // The member 'foo' is not available on value '3'.
         |}
         |""".stripMargin
-    val expected = Seq(Diagnostic(HumanPosition(7, 10).span(1), Some(1), "Expected value with fields but got '3'"))
+    val expected = Seq(Diagnostic(HumanPosition(6, 10).span(1), Some(1), "Expected value with fields but got '3'"))
     val diagnostics = getDiagnostics(server, program)
     assertResult(expected)(diagnostics)
   }
 
   test("missing property") {
     val program =
-      """// The function 'fibonacciTest' is recognized as a test.
-        |const fibonacciTest = () => {
+      """const fibonacciTest = () => {
         |  assert.equal(getFoo({ foo: "Remy" }), "Remy");
         |}
         |
         |const getFoo = (n) => {
         |  return n.bar;
-        |  // The member 'foo' is not available on value '3'.
         |};
         |""".stripMargin
-    val expected = Seq(Diagnostic(HumanPosition(7, 10).span(5), Some(1), "The member 'bar' is not available on value '{ foo: Remy }'"))
+    val expected = Seq(Diagnostic(HumanPosition(6, 10).span(5), Some(1), "The member 'bar' is not available on value '{ foo: Remy }'"))
     val diagnostics = getDiagnostics(server, program)
     assertResult(expected)(diagnostics)
   }
@@ -84,7 +80,6 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
     val program =
       """const highLevelTest = () => {
         |  fibonacci("hello");
-        |  // The value "hello" passed to fibonacci is not valid. Examples of valid values are: 2, 3
         |};
         |
         |const fibonacciTest = () => {
@@ -101,15 +96,15 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
 
     // TODO, suggest example values in diagnostic
     val uri = Random.nextInt().toString
-    val relatedInformation = RelatedInformation(FileRange(uri, HumanPosition(14,20).span(3)),
+    val relatedInformation = RelatedInformation(FileRange(uri, HumanPosition(13,20).span(3)),
       "Expected value that supports subtraction but got 'hello'")
     val expected = Seq(Diagnostic(HumanPosition(2, 3).span(18), Some(1),
       "Function call failed with arguments 'hello'", relatedInformation = Seq(relatedInformation)))
     val (diagnostics, document) = openAndCheckDocument(server, program, uri)
     assertResult(expected)(diagnostics)
 
-    val result2 = server.gotoDefinition(DocumentPosition(document, HumanPosition(8, 12))).head.range
-    assertResult(HumanPosition(11, 7).span(9))(result2)
+    val result2 = server.gotoDefinition(DocumentPosition(document, HumanPosition(7, 12))).head.range
+    assertResult(HumanPosition(10, 7).span(9))(result2)
   }
 
   test("validating values") {
@@ -117,7 +112,6 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
       """const squareTest = () => {
         |  assert.strictEqual(square(2), 4);
         |  assert.strictEqual(square(3), 9);
-        |  // Related location for the error below.
         |}
         |
         |const square = (x) => {
@@ -127,16 +121,18 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
 
     val (diagnostics, document) = openAndCheckDocument(server, program)
     val related = RelatedInformation(FileRange(document.uri, HumanPosition(3, 33).span(1)), "9")
-    val expected = Seq(Diagnostic(HumanPosition(8, 10).span(5), Some(1),
+    val expected = Seq(Diagnostic(HumanPosition(7, 10).span(5), Some(1),
       "Expression was '6' while '9' was expected", relatedInformation = Seq(related)))
     assertResult(expected)(diagnostics)
   }
 
-  // TODO remove the need for the parenthesis by fixing parser priorities.
+  // TODO remove the need for the const remy = "Remy" by fixing parser.
+  // TODO remove the need for the parenthesis by fixing parser.
   test("validating values from object members") {
     val program =
-      """const nameTest = () => {
-        |  assert.strictEqual((new Person("Remy")).name, "Remy");
+      """const remy = "Remy";
+        |const nameTest = () => {
+        |  assert.strictEqual((new Person(remy)).name, "Remy");
         |}
         |
         |const Person = (name) => {
@@ -146,8 +142,8 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
 
 
     val (diagnostics, document) = openAndCheckDocument(server, program)
-    val related = RelatedInformation(FileRange(document.uri, HumanPosition(2, 49).span(6)), "Remy")
-    val expected = Seq(Diagnostic(HumanPosition(6, 15).span(7), Some(1),
+    val related = RelatedInformation(FileRange(document.uri, HumanPosition(3, 47).span(6)), "Remy")
+    val expected = Seq(Diagnostic(HumanPosition(7, 15).span(7), Some(1),
       "Expression was 'Elise' while 'Remy' was expected", relatedInformation = Seq(related)))
     assertResult(expected)(diagnostics)
   }
@@ -157,7 +153,6 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
       """const variablesTest = () => {
         |  const x = 2;
         |  return x + 3;
-        |  // Goto definition on x will jump to "x" in "const x";
         |}
         |""".stripMargin
 
@@ -166,6 +161,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
     assertResult(expected)(definitions)
   }
 
+  // TODO remove weird const name = "name" hack when stringLiteral parse weirdness is resolved.
   test("first dot assignment determines definition") {
     val program =
       """const memberAssignmentsTest = () => {
@@ -174,12 +170,11 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |  obj.name = "Remy";
         |  obj.name = "Elise";
         |  obj.name
-        |  // Goto definition on name will jump to "name" in the assignment "obj.name = 'Remy'";
         |}
         |""".stripMargin
 
     val expected = Seq(HumanPosition(4, 7).span(4))
-    val definitions = gotoDefinition(server, program, HumanPosition(6, 8)).map(d => d.range)
+    val definitions = gotoDefinition(server, program, HumanPosition(5, 8)).map(d => d.range)
     assertResult(expected)(definitions)
   }
 
@@ -222,18 +217,23 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
     // assertResult(Seq(globalItem, localItem))(complete(server, program, HumanPosition(7, 4)).items)
   }
 
+  // TODO somehow the comment in the code interacts with the "Remy" somewhere else ???
+  // comment: After the dot, completion results for the 'name' and 'age' are shown
+  // Seems like parser framework problems :((
   test("code completion across methods") {
     val program =
       """const getNameTest = () => {
         |  const person = { name: "Remy", age: 32 };
-        |  assert.strictEquals(getName(person), "Remy");
+        |  assert.strictEquals(getName(person), remy);
         |};
         |
         |const getName = (person) => {
         |  return person.
-        |  // After the dot, the completion results 'name' and 'age' are shown.
         |};
         |""".stripMargin
+    // TODO Assert that there is only a parsing diagnostic but not another one
+    // assert(getDiagnostics(server, program).isEmpty)
+
     val expected = Seq(CompletionItem("name", detail = Some("Remy")), CompletionItem("age", detail = Some("32")))
     val definitions = complete(server, program, HumanPosition(7, 17)).items
     assertResult(expected)(definitions)
