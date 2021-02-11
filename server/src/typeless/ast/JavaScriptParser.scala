@@ -6,9 +6,12 @@ import typeless.ast
 
 import scala.collection.immutable.ListMap
 
+//noinspection TypeAnnotation
 object JavaScriptParser extends CommonStringReaderParser
   with LeftRecursiveCorrectingParserWriter
   with WhitespaceParserWriter {
+
+  override def trivia: Parser[String] = lineComment | whiteSpace
 
   val statementEnd = ";" | "\n"
 
@@ -24,10 +27,9 @@ object JavaScriptParser extends CommonStringReaderParser
 
   val lineComment = parseRegex("""//[^\n]*""".r, "line comment")
 
-  override def trivia: Parser[String] = lineComment | whiteSpace
 
   val stringLiteralParser: Parser[StringLiteral] = stringLiteral.withSourceRange((range, value) => StringLiteral(range, value))
-  val numberLiteral = wholeNumber.withSourceRange((range, number) => WholeNumber(range, Integer.parseInt(number)))
+  private val numberLiteral = wholeNumber.withSourceRange((range, number) => WholeNumber(range, Integer.parseInt(number)))
 
   // Priority is not yet correctly established
   val addition = (expression ~< "+" ~ expression).withSourceRange((range, t) => Addition(range, t._1, t._2))
@@ -64,10 +66,12 @@ object JavaScriptParser extends CommonStringReaderParser
   val thisParser: Parser[ThisReference] = ("this": Parser[String]).withSourceRange((range, _) => ThisReference(range))
   val parenthesis: Parser[Expression] = "(" ~> expression ~< ")"
 
-  lazy val coreExpression: Parser[Expression] = new Lazy(newParser | booleanParser |
-    thisParser | lambda | stringLiteralParser | numberLiteral |
-    addition | subtraction | multiplication | bracketAccess | assignment | modulo | objectLiteral
-    | equalsParser | lessThanParser | variableExpression | parenthesis)
+  val nonRecursiveExpression = booleanParser | thisParser | numberLiteral | stringLiteralParser | variableExpression
+  val nonAssociatedExpression = nonRecursiveExpression | parenthesis | objectLiteral
+  lazy val coreExpression: Parser[Expression] = new Lazy(nonAssociatedExpression | newParser |
+    lambda |
+    addition | subtraction | multiplication | bracketAccess | assignment | modulo
+    | equalsParser | lessThanParser)
   lazy val expression: Parser[Expression] = new Lazy(dotAccess | callExpression | coreExpression)
 
   val name = (parseIdentifier | Fallback("", "name")).withSourceRange((range, name) => new Name(range, name))
