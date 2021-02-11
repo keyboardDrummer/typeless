@@ -39,7 +39,7 @@ object AssertStrictEqual extends ClosureLike {
     val actual = argumentValues(0)
     val expected = argumentValues(1)
     if (!Value.strictEqual(actual, expected)) {
-      return AssertEqualFailure(actual, expected)
+      return AssertEqualFailure(context.file, actual, expected)
     }
     new UndefinedValue()
   }

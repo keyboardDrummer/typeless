@@ -117,9 +117,12 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |  // The value 9 was expected but it was 6, with a link to the assert.strictEqual that caused this error.
         |}
         |""".stripMargin
-    // TODO add a related location to the Diagnostic
-    val expected = Seq(Diagnostic(SourceRange(HumanPosition(8, 10), HumanPosition(8, 15)), Some(1), "The value '9' was expected but it was '6'."))
-    val diagnostics = getDiagnostics(server, program)
+
+    val uri = Random.nextInt().toString
+    val related = RelatedInformation(FileRange(uri, HumanPosition(3, 33).span(1)), "9")
+    val expected = Seq(Diagnostic(SourceRange(HumanPosition(8, 10), HumanPosition(8, 15)), Some(1),
+      "The value '9' was expected but it was '6'", relatedInformation = Seq(related)))
+    val diagnostics = openAndCheckDocument(server, program, uri)._1
     assertResult(expected)(diagnostics)
   }
 

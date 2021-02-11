@@ -34,6 +34,8 @@ class CorrectCallGaveException(file: String, exception: UserExceptionResult, cal
     val relatedInfo = RelatedInformation(FileRange(file, innerDiagnostic.range), innerDiagnostic.message)
     Diagnostic(call.rangeOption.get.toSourceRange, Some(1), message, relatedInformation = Seq(relatedInfo))
   }
+
+  override def canBeModified: Boolean = true
 }
 
 case class Call(range: OffsetPointerRange, target: Expression, arguments: Vector[Expression]) extends Expression {
@@ -59,7 +61,7 @@ case class Call(range: OffsetPointerRange, target: Expression, arguments: Vector
       case closure: ClosureLike =>
         evaluateClosure(context, argumentValues, closure) match {
           case exception: UserExceptionResult =>
-            if (context.isClosureCorrect(closure)) {
+            if (exception.canBeModified && context.isClosureCorrect(closure)) {
               new CorrectCallGaveException(context.file, exception, this, closure, argumentValues)
             }
             else {

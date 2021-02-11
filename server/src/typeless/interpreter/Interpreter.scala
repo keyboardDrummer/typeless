@@ -3,7 +3,7 @@ package typeless.interpreter
 import miksilo.editorParser.parsers.SourceElement
 import miksilo.languageServer.core.language.{Compilation, Phase, SourcePathFromElement}
 import miksilo.languageServer.core.smarts.FileDiagnostic
-import miksilo.lspprotocol.lsp.Diagnostic
+import miksilo.lspprotocol.lsp.{Diagnostic, FileRange, RelatedInformation}
 import typeless.ast.{JavaScriptFile, Lambda, NameLike, Statement}
 import typeless.server.JavaScriptCompilation
 
@@ -26,10 +26,12 @@ trait ExpressionResult {
 }
 
 trait UserExceptionResult extends ExceptionResult {
+  def canBeModified: Boolean
   def toDiagnostic: Diagnostic
 }
 
 trait SimpleExceptionResult extends UserExceptionResult {
+  def canBeModified = false
   def element: SourceElement
   def message: String
 
@@ -287,13 +289,13 @@ trait ClosureLike extends Value {
 }
 
 
-case class AssertEqualFailure(actual: Value, expected: Value) extends SimpleExceptionResult {
-  override def element: SourceElement = actual.createdAt
-
-  override def message: String = s"The value '${expected.represent()}' was expected but it was '${actual.represent()}'."
+case class AssertEqualFailure(file: String, actual: Value, expected: Value) extends UserExceptionResult {
 
   override def toDiagnostic: Diagnostic = {
-    // TODO add related information linking to assertion.
-    super.toDiagnostic
+    val message = s"The value '${expected.represent()}' was expected but it was '${actual.represent()}'"
+    val relatedInformation = RelatedInformation(FileRange(file, expected.createdAt.rangeOption.get.toSourceRange), expected.represent())
+    Diagnostic(actual.createdAt.rangeOption.get.toSourceRange, Some(1), message, relatedInformation = Seq(relatedInformation))
   }
+
+  override def canBeModified: Boolean = false
 }
