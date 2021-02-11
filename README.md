@@ -1,4 +1,4 @@
-# Typeless: all the benefits of TypeScript, without the types
+# Typeless: the benefits of TypeScript, without the types
 
 Typeless provides the great editor tooling we're used to from TypeScript, but then for plain JavaScript. Typeless uses unit tests instead of type annotations to understand source code. Let's compare a Typeless program with its TypeScript equivalent. First the Typeless program:
 
