@@ -44,7 +44,7 @@ object JavaScriptParser extends CommonStringReaderParser with LeftRecursiveCorre
 
   val argument: Parser[Argument] = ("...".option ~ parseIdentifier).
     withSourceRange((range, name) => Argument(range, name._2, name._1.isEmpty))
-  val arguments = "(" ~> argument.manySeparated(",", "argument") ~< ")"
+  val arguments: Parser[Vector[Argument]] = "(" ~> argument.manySeparated(",", "argument") ~< ")"
   lazy val lambdaBody = body | expression.map(expr => Vector(ExpressionStatement(expr.range, expr)))
   val lambdaArguments: JavaScriptParser.ParserBuilder[Vector[Argument]] = arguments | argument.map(a => Vector(a))
   lazy val lambda: Parser[Lambda] = (lambdaArguments ~< "=>" ~ lambdaBody).
@@ -55,11 +55,11 @@ object JavaScriptParser extends CommonStringReaderParser with LeftRecursiveCorre
   val dotAccess: Parser[DotAccess] = (expression ~< "." ~ name).
     withSourceRange((range, t) => DotAccess(range, t._1, t._2))
 
-  val assignmentTarget = dotAccess | variableExpression | bracketAccess
+  val assignmentTarget: Parser[AssignmentTarget] = dotAccess | variableExpression | bracketAccess
   val assignment: Parser[Assignment] = (assignmentTarget ~< "=" ~ expression).
     withSourceRange((range, t) => Assignment(range, t._1, t._2))
 
-  val thisParser = ("this": Parser[String]).withSourceRange((range, _) => ThisReference(range))
+  val thisParser: Parser[ThisReference] = ("this": Parser[String]).withSourceRange((range, _) => ThisReference(range))
   lazy val expression: Parser[Expression] = new Lazy(thisParser | callExpression | lambda | numberLiteral | variableExpression |
     addition | subtraction | multiplication | dotAccess | bracketAccess | assignment | modulo | objectLiteral | stringLiteralParser
     | booleanParser | equalsParser | newParser | lessThanParser)

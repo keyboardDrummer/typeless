@@ -12,7 +12,7 @@ case class BooleanLiteral(range: OffsetPointerRange, value: Boolean) extends Exp
 }
 
 case class StringValue(value: String) extends Value {
-  override def represent(): String = value
+  override def represent(depth: Int = 1): String = value
 }
 
 case class StringLiteral(range: OffsetPointerRange, value: String) extends Expression {

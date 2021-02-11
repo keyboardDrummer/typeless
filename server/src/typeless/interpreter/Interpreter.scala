@@ -60,7 +60,7 @@ case class TypeError(element: SourceElement, expected: String, value: Value)
 }
 
 class PrimitiveValue[T](val value: T) extends Value {
-  override def represent(): String = value.toString
+  override def represent(depth: Int = 1): String = value.toString
 }
 
 class IntValue(value: Int) extends PrimitiveValue[Int](value) {
@@ -82,7 +82,14 @@ class ObjectValue(var members: mutable.Map[String, Value] = mutable.Map.empty)
     members.put(name, value)
   }
 
-  override def represent(): String = "Object"
+  override def represent(depth: Int = 1): String = {
+    if (depth == 0) {
+      "Object"
+    } else {
+      val membersString = members.map(e => e._1 + ": " + e._2.represent(depth - 1)).reduce((l,r) => l + ", " + r)
+      s"{ $membersString }"
+    }
+  }
 
   override def memberNames: Iterable[String] = members.keys
 
@@ -114,7 +121,7 @@ trait Value extends ExpressionResult {
   var createdAt: SourceElement = null
   var documentation: Option[String] = None
 
-  def represent(): String = "some value"
+  def represent(depth: Int = 1): String = "some value"
 }
 
 object Void extends StatementResult {

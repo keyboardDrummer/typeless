@@ -43,7 +43,6 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
       """// The function 'fibonacciTest' is recognized as a test.
         |const fibonacciTest = () => {
         |  assert.equal(fibonacci(3), 2);
-        |  assert.equal(fibonacci(4), 3);
         |}
         |
         |const fibonacci = (n) => {
@@ -51,7 +50,24 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |  // The member 'foo' is not available on value '3'.
         |}
         |""".stripMargin
-    val expected = Seq(Diagnostic(SourceRange(HumanPosition(8, 10), HumanPosition(8, 15)), Some(1), "The member 'foo' is not available on value '3'"))
+    val expected = Seq(Diagnostic(SourceRange(HumanPosition(8, 10), HumanPosition(8, 15)), Some(1), "Expected value of type object but got '3'"))
+    val diagnostics = getDiagnostics(server, program)
+    assertResult(expected)(diagnostics)
+  }
+
+  test("missing property") {
+    val program =
+      """// The function 'fibonacciTest' is recognized as a test.
+        |const fibonacciTest = () => {
+        |  assert.equal(getFoo({ foo: "Remy" }), "Remy");
+        |}
+        |
+        |const getFoo = (n) => {
+        |  return n.bar;
+        |  // The member 'foo' is not available on value '3'.
+        |};
+        |""".stripMargin
+    val expected = Seq(Diagnostic(SourceRange(HumanPosition(7, 10), HumanPosition(7, 15)), Some(1), "The member 'bar' is not available on value '{ foo: Remy }'"))
     val diagnostics = getDiagnostics(server, program)
     assertResult(expected)(diagnostics)
   }
