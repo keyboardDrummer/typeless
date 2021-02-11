@@ -16,7 +16,8 @@ class References() {
   }
 }
 
-class Context(val allowUndefinedPropertyAccess: Boolean,
+class Context(val file: String,
+              val allowUndefinedPropertyAccess: Boolean,
               var functionCorrectness: Option[FunctionCorrectness],
               var runningTests: Set[Closure],
               var throwAtElementResult: Option[SourceElement],
@@ -52,7 +53,7 @@ class Context(val allowUndefinedPropertyAccess: Boolean,
   def getThis: ObjectValue = _this.head
 
   def withScope(newScope: Scope): Context = {
-    val result = new Context(allowUndefinedPropertyAccess, functionCorrectness,
+    val result = new Context(file, allowUndefinedPropertyAccess, functionCorrectness,
       runningTests, throwAtElementResult, collectScopeAtElement, referencesOption, newScope)
     result._this = _this
     result
@@ -73,7 +74,7 @@ class Context(val allowUndefinedPropertyAccess: Boolean,
     val result = evaluateExpression(expression)
     result match {
       case value: StringValue => value
-      case value: Value => TypeError(expression, "string", value)
+      case value: Value => TypeError(expression, "that is text", value)
       case e: ExceptionResult => e
     }
   }
@@ -82,7 +83,7 @@ class Context(val allowUndefinedPropertyAccess: Boolean,
     val result = evaluateExpression(expression)
     result match {
       case value: ObjectValue => value
-      case value: Value => TypeError(expression, "object", value)
+      case value: Value => TypeError(expression, "that has fields", value)
       case e: ExceptionResult => e
     }
   }

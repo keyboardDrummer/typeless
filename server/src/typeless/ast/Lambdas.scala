@@ -3,11 +3,10 @@ package typeless.ast
 import miksilo.editorParser.parsers.SourceElement
 import miksilo.editorParser.parsers.editorParsers.OffsetPointerRange
 import miksilo.languageServer.core.language.FileElement
-import typeless.interpreter.{Closure, ClosureLike, Context, DiagnosticExceptionResult, ExceptionResult, ExpressionResult, QueryException, ReturnedValue, StatementResult, TypeError, Value}
-
+import miksilo.lspprotocol.lsp.{Diagnostic, FileRange, RelatedInformation}
+import typeless.interpreter._
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
-
 
 case class Argument(range: OffsetPointerRange, name: String, varArgs: Boolean) extends FileElement with NameLike {
 
@@ -23,14 +22,17 @@ case class Lambda(range: OffsetPointerRange, arguments: Vector[Argument], body: 
   }
 }
 
-class CorrectCallGaveException(exception: ExceptionResult, call: Call,
+// TODO remove file argument
+class CorrectCallGaveException(file: String, exception: UserExceptionResult, call: Call,
                                closure: ClosureLike, argumentValues: collection.Seq[Value])
-  extends DiagnosticExceptionResult {
-  override def element: SourceElement = call
+  extends UserExceptionResult {
 
-  override def message: String = {
+  override def toDiagnostic: Diagnostic = {
     val values = argumentValues.map(a => a.represent()).reduce((left, right) => left + ", " + right)
-    s"This function call failed with arguments '$values'."
+    val message = s"Function call failed with arguments '$values'"
+    val innerDiagnostic = exception.toDiagnostic
+    val relatedInfo = RelatedInformation(FileRange(file, innerDiagnostic.range), innerDiagnostic.message)
+    Diagnostic(call.rangeOption.get.toSourceRange, Some(1), message, relatedInformation = Seq(relatedInfo))
   }
 }
 
@@ -55,12 +57,10 @@ case class Call(range: OffsetPointerRange, target: Expression, arguments: Vector
 
     targetResult match {
       case closure: ClosureLike =>
-
-
         evaluateClosure(context, argumentValues, closure) match {
-          case exception: ExceptionResult =>
+          case exception: UserExceptionResult =>
             if (context.isClosureCorrect(closure)) {
-              new CorrectCallGaveException(exception, this, closure, argumentValues)
+              new CorrectCallGaveException(context.file, exception, this, closure, argumentValues)
             }
             else {
               exception
@@ -68,7 +68,7 @@ case class Call(range: OffsetPointerRange, target: Expression, arguments: Vector
           case result => result
         }
       case targetValue: Value =>
-        TypeError(target, "closure", targetValue)
+        TypeError(target, "that can be called", targetValue)
       case _ => targetResult
     }
   }

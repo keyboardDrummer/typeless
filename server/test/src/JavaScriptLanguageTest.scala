@@ -4,6 +4,8 @@ import miksilo.lspprotocol.lsp._
 import org.scalatest.funsuite.AnyFunSuite
 import typeless.server.TypelessLanguageServer
 
+import scala.util.Random
+
 class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
 
   val server = new TypelessLanguageServer()
@@ -92,10 +94,13 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |};
         |""".stripMargin
 
-    // TODO, add linked diagnostic to actual failure location in fibonacci.
     // TODO, suggest example values in diagnostic
-    val expected = Seq(Diagnostic(SourceRange(HumanPosition(2, 3), HumanPosition(2, 21)), Some(1), "This function call failed with arguments 'hello'."))
-    val diagnostics = getDiagnostics(server, program)
+    val uri = Random.nextInt().toString
+    val relatedInformation = RelatedInformation(FileRange(uri, HumanPosition(14,20).span(3)),
+      "Expected value that supports subtraction but got 'hello'")
+    val expected = Seq(Diagnostic(HumanPosition(2, 3).span(18), Some(1),
+      "Function call failed with arguments 'hello'", relatedInformation = Seq(relatedInformation)))
+    val diagnostics = openAndCheckDocument(server, program, uri)._1
     assertResult(expected)(diagnostics)
   }
 

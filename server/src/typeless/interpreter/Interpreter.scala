@@ -25,7 +25,11 @@ trait ExpressionResult {
   def toValue: Option[Value]
 }
 
-trait DiagnosticExceptionResult extends ExceptionResult {
+trait UserExceptionResult extends ExceptionResult {
+  def toDiagnostic: Diagnostic
+}
+
+trait SimpleExceptionResult extends UserExceptionResult {
   def element: SourceElement
   def message: String
 
@@ -43,19 +47,20 @@ trait ExceptionResult extends ExpressionResult with StatementResult {
   override def toExpressionResult: ExpressionResult = this
 }
 
-case class UndefinedMemberAccess(element: SourceElement, name: String, value: Value) extends DiagnosticExceptionResult {
+case class UndefinedMemberAccess(element: SourceElement, name: String, value: Value)
+  extends SimpleExceptionResult {
   override def message: String = s"The member '$name' is not available on value '${value.represent()}'"
 }
 
 trait CatchableExceptionResult extends ExceptionResult
 
 case class ReferenceError(element: SourceElement, name: String)
-  extends DiagnosticExceptionResult with CatchableExceptionResult {
+  extends SimpleExceptionResult with CatchableExceptionResult {
   override def message: String = s"Variable $name was accessed but is not defined"
 }
 case class TypeError(element: SourceElement, expected: String, value: Value)
-  extends DiagnosticExceptionResult with CatchableExceptionResult {
-  override def message: String = s"Expected value of type $expected but got '${value.represent()}'"
+  extends SimpleExceptionResult with CatchableExceptionResult {
+  override def message: String = s"Expected value $expected but got '${value.represent()}'"
 }
 
 class PrimitiveValue[T](val value: T) extends Value {
@@ -209,16 +214,24 @@ object InterpreterPhase {
 
   def interpret(compilation: Compilation): Unit = {
 
+    val uri = compilation.rootFile.get
     val javaScriptCompilation = compilation.asInstanceOf[JavaScriptCompilation]
     val program = compilation.program.asInstanceOf[SourcePathFromElement].sourceElement.asInstanceOf[JavaScriptFile]
     val defaultState = StandardLibrary.createState()
 
     javaScriptCompilation.references = new References()
-    val context = new Context(false, None, Set.empty, None, None, Some(javaScriptCompilation.references), defaultState)
+    val context = new Context(uri,
+      allowUndefinedPropertyAccess = false,
+      functionCorrectness = None,
+      runningTests = Set.empty,
+      throwAtElementResult = None,
+      collectScopeAtElement = None,
+      referencesOption = Some(javaScriptCompilation.references),
+      scope = defaultState)
     val result = program.evaluate(context)
     result match {
-      case e: DiagnosticExceptionResult =>
-        compilation.diagnostics += FileDiagnostic("uri", e.toDiagnostic)
+      case e: UserExceptionResult =>
+        compilation.diagnostics += FileDiagnostic(uri, e.toDiagnostic)
       case _ =>
     }
 
@@ -249,7 +262,7 @@ object InterpreterPhase {
     tests.foreach(test => {
       val result = context.runTest(test._2)
       result match {
-        case e: DiagnosticExceptionResult =>
+        case e: UserExceptionResult =>
           compilation.diagnostics += FileDiagnostic(compilation.rootFile.get, e.toDiagnostic)
         case _ =>
       }
@@ -264,7 +277,7 @@ object InterpreterPhase {
 class BooleanValue(value: Boolean) extends PrimitiveValue[Boolean](value) {
 }
 
-case class NotImplementedException(element: SourceElement) extends DiagnosticExceptionResult {
+case class NotImplementedException(element: SourceElement) extends SimpleExceptionResult {
   override def message: String = "The interpreter functionality required to evaluate this code was not yet implemented."
 }
 
@@ -274,7 +287,7 @@ trait ClosureLike extends Value {
 }
 
 
-case class AssertEqualFailure(actual: Value, expected: Value) extends DiagnosticExceptionResult {
+case class AssertEqualFailure(actual: Value, expected: Value) extends SimpleExceptionResult {
   override def element: SourceElement = actual.createdAt
 
   override def message: String = s"The value '${expected.represent()}' was expected but it was '${actual.represent()}'."

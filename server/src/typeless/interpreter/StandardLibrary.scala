@@ -3,7 +3,7 @@ package typeless.interpreter
 import miksilo.editorParser.parsers.SourceElement
 import miksilo.editorParser.parsers.editorParsers.OffsetPointerRange
 
-case class NativeCallFailed(expectedValues: Seq[Value]) extends DiagnosticExceptionResult {
+case class NativeCallFailed(expectedValues: Seq[Value]) extends SimpleExceptionResult {
 
   override def message: String = "assertion failed"
 

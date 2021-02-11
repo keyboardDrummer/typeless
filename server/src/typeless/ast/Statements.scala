@@ -86,7 +86,7 @@ case class IfStatement(range: OffsetPointerRange,
           Statement.evaluateBody(context, elseBody)
         }
         result
-      case conditionValue: Value => TypeError(this, "boolean", conditionValue)
+      case conditionValue: Value => TypeError(this, "that's true or false", conditionValue)
       case e: ExceptionResult => e
     }
   }

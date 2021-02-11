@@ -96,7 +96,7 @@ case class Subtraction(range: OffsetPointerRange, left: Expression, right: Expre
   override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = {
     (leftValue, rightValue) match {
       case (leftInt: IntValue, rightInt: IntValue) => new IntValue(leftInt.value - rightInt.value)
-      case _ => TypeError(this, "supports -", leftValue)
+      case _ => TypeError(this, "that supports subtraction", leftValue)
     }
   }
 }
@@ -105,7 +105,7 @@ case class LessThan(range: OffsetPointerRange, left: Expression, right: Expressi
   override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = {
     (leftValue, rightValue) match {
       case (leftInt: IntValue, rightInt: IntValue) => new BooleanValue(leftInt.value < rightInt.value)
-      case _ => TypeError(left, "something that supports the '<' operator", leftValue)
+      case _ => TypeError(left, "that supports the '<' operator", leftValue)
     }
   }
 }
