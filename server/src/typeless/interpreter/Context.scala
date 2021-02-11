@@ -3,33 +3,47 @@ package typeless.interpreter
 import miksilo.editorParser.parsers.SourceElement
 import typeless.ast.{Expression, NameLike, StringValue}
 
-class References() {
-  var referenceToDefinition: Map[NameLike, NameLike] = Map.empty
-  private var definitionToReferences: Map[NameLike, Set[NameLike]] = Map.empty
+trait RunMode {
+  def skipErrors: Boolean
+}
+case class FindValue(expression: SourceElement) extends RunMode {
+  override def skipErrors = true
+}
+case class FindScope(element: SourceElement) extends RunMode {
+  override def skipErrors = true
+}
+class Scan extends RunMode {
+  override def skipErrors = false
 
-  def getReferences(definition: NameLike): Set[NameLike] = {{
-    definitionToReferences.getOrElse(definition, Set.empty)
-  }}
+  private var referenceToDefinition: Map[NameLike, NameLike] = Map.empty
 
-  def computeReferencesPerDeclaration(): Unit = {
-    definitionToReferences = referenceToDefinition.groupMapReduce(e => e._2)(e => Set(e._1))((a, b) => a ++ b)
+  def addReference(reference: NameLike, definition: NameLike) = {
+    referenceToDefinition += reference -> definition
+  }
+
+  def computeReferencesPerDeclaration(): Map[NameLike, Set[NameLike]] = {
+    referenceToDefinition.groupMapReduce(e => e._2)(e => Set(e._1))((a, b) => a ++ b)
   }
 }
 
-class Context(val file: String,
-              val allowUndefinedPropertyAccess: Boolean,
+case class RunConfiguration(file: String,
+                            maxCallDepth: Int,
+                            allowUndefinedPropertyAccess: Boolean,
+                            var mode: RunMode) {
+
+  def skipErrors: Boolean = mode.skipErrors
+
+}
+
+class Context(var configuration: RunConfiguration,
+              var callDepth: Int,
               var functionCorrectness: Option[FunctionCorrectness],
               var runningTests: Set[Closure],
-              var throwAtElementResult: Option[SourceElement],
-              var collectScopeAtElement: Option[SourceElement],
-              var referencesOption: Option[References],
               val scope: Scope) {
-
 
   def isRunningTest(test: Closure): Boolean = {
     runningTests.contains(test)
   }
-
 
   def runTest(test: Closure): ExpressionResult = {
     runningTests += test
@@ -53,8 +67,7 @@ class Context(val file: String,
   def getThis: ObjectValue = _this.head
 
   def withScope(newScope: Scope): Context = {
-    val result = new Context(file, allowUndefinedPropertyAccess, functionCorrectness,
-      runningTests, throwAtElementResult, collectScopeAtElement, referencesOption, newScope)
+    val result = new Context(configuration, callDepth, functionCorrectness, runningTests, newScope)
     result._this = _this
     result
   }
@@ -88,10 +101,10 @@ class Context(val file: String,
     }
   }
 
-  def skipErrors: Boolean = collectScopeAtElement.nonEmpty || throwAtElementResult.nonEmpty
+  def skipErrors: Boolean = configuration.skipErrors
 
   def evaluateExpression(expression: Expression): ExpressionResult = {
-    if (collectScopeAtElement.contains(expression)) {
+    if (configuration.mode == FindScope(expression)) {
       return ScopeInformation(scope)
     }
 
@@ -100,7 +113,7 @@ class Context(val file: String,
       case value: Value if value.createdAt == null => value.createdAt = expression
       case _ =>
     }
-    if (throwAtElementResult.contains(expression)) {
+    if (configuration.mode == FindValue(expression)) {
       ReturnInformationWithThrow(result)
     } else {
       result

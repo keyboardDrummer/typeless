@@ -26,7 +26,7 @@ object server extends ScalaModule {
 
   def extensionPath = os.pwd / "vscode-extension"
   def vscodePrePublish() = T.command {
-    val assemblyPath: PathRef = server.assembly()
+    val assemblyPath: PathRef = assembly()
     val outPath = extensionPath  / "out"
 
     os.copy(assemblyPath.path, outPath / "LanguageServer.jar", replaceExisting = true)

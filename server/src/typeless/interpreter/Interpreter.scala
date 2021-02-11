@@ -31,7 +31,7 @@ trait UserExceptionResult extends ExceptionResult {
 }
 
 trait SimpleExceptionResult extends UserExceptionResult {
-  def canBeModified = false
+  def canBeModified = true
   def element: SourceElement
   def message: String
 
@@ -214,6 +214,8 @@ object InterpreterPhase {
 
   val phase = Phase("interpreter", "where the interpreting happens", interpret)
 
+  val maxCallDepth = 100
+
   def interpret(compilation: Compilation): Unit = {
 
     val uri = compilation.rootFile.get
@@ -221,14 +223,11 @@ object InterpreterPhase {
     val program = compilation.program.asInstanceOf[SourcePathFromElement].sourceElement.asInstanceOf[JavaScriptFile]
     val defaultState = StandardLibrary.createState()
 
-    javaScriptCompilation.references = new References()
-    val context = new Context(uri,
-      allowUndefinedPropertyAccess = false,
+    val scan = new Scan()
+    val context = new Context(RunConfiguration(uri, maxCallDepth = maxCallDepth, allowUndefinedPropertyAccess = false, mode = scan),
+      0,
       functionCorrectness = None,
       runningTests = Set.empty,
-      throwAtElementResult = None,
-      collectScopeAtElement = None,
-      referencesOption = Some(javaScriptCompilation.references),
       scope = defaultState)
     val result = program.evaluate(context)
     result match {
@@ -270,8 +269,7 @@ object InterpreterPhase {
       }
     })
 
-    javaScriptCompilation.references.computeReferencesPerDeclaration()
-    context.referencesOption = None
+    javaScriptCompilation.references = scan.computeReferencesPerDeclaration()
   }
 }
 

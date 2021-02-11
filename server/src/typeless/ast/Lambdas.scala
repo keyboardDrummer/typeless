@@ -59,16 +59,24 @@ case class Call(range: OffsetPointerRange, target: Expression, arguments: Vector
 
     targetResult match {
       case closure: ClosureLike =>
-        evaluateClosure(context, argumentValues, closure) match {
+
+        if (context.callDepth > context.configuration.maxCallDepth) {
+          return MaxCallDepthReached(this)
+        }
+        context.callDepth += 1
+
+        val result = evaluateClosure(context, argumentValues, closure) match {
           case exception: UserExceptionResult =>
             if (exception.canBeModified && context.isClosureCorrect(closure)) {
-              new CorrectCallGaveException(context.file, exception, this, closure, argumentValues)
+              new CorrectCallGaveException(context.configuration.file, exception, this, closure, argumentValues)
             }
             else {
               exception
             }
           case result => result
         }
+        context.callDepth -= 1
+        result
       case targetValue: Value =>
         TypeError(target, "that can be called", targetValue)
       case _ => targetResult
@@ -78,6 +86,10 @@ case class Call(range: OffsetPointerRange, target: Expression, arguments: Vector
   def evaluateClosure(context: Context, argumentValues: ArrayBuffer[Value], closure: ClosureLike): ExpressionResult = {
     closure.evaluate(context, argumentValues)
   }
+}
+
+case class MaxCallDepthReached(element: SourceElement) extends SimpleExceptionResult {
+  override def message: String = "Call takes too long for a test"
 }
 
 case class ReturnStatement(range: OffsetPointerRange, expression: Expression) extends Statement {

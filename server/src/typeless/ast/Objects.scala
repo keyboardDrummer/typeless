@@ -12,7 +12,7 @@ class New(range: OffsetPointerRange, target: Expression, arguments: Vector[Expre
     // TODO, assign __proto__ field from closure.prototype
     val newObj = new ObjectValue()
     context.setThis(newObj)
-    closure.evaluate(context, argumentValues) match {
+    super.evaluateClosure(context, argumentValues, closure) match {
       case _: UndefinedValue => newObj
       case result => result
     }
@@ -29,7 +29,7 @@ case class BracketAccess(range: OffsetPointerRange, target: Expression, property
         val stringValue = propertyValue.asInstanceOf[StringValue]
         targetObject.getMember(stringValue.value) match {
           case Some(memberValue) => memberValue
-          case None => if (context.allowUndefinedPropertyAccess) {
+          case None => if (context.configuration.allowUndefinedPropertyAccess) {
             new UndefinedValue()
           } else {
             UndefinedMemberAccess(this, stringValue.value, targetValue)
@@ -63,7 +63,7 @@ case class DotAccess(range: OffsetPointerRange, target: Expression, property: Na
   override def evaluate(context: Context): ExpressionResult = {
     context.evaluateObjectValue(target).flatMap(targetValue => {
       val targetObject = targetValue.asInstanceOf[ObjectValue]
-      if (context.collectScopeAtElement.contains(property)) {
+      if (context.configuration.mode == FindScope(property)) {
         return ScopeInformation(targetObject)
       }
       targetObject.members.get(property.name).foreach(memberValue =>
@@ -73,7 +73,7 @@ case class DotAccess(range: OffsetPointerRange, target: Expression, property: Na
           property.addReference(context, memberValue)
           memberValue
         }
-        case None => if (context.allowUndefinedPropertyAccess) {
+        case None => if (context.configuration.allowUndefinedPropertyAccess) {
           new UndefinedValue()
         } else {
           UndefinedMemberAccess(this, property.name, targetValue)

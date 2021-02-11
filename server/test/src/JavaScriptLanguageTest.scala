@@ -37,8 +37,13 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |// Hovering over isRemyEven shows us that it can have the values 'true' and 'false'
         |""".stripMargin
 
-    val diagnostics = getDiagnostics(server, program)
+    val (diagnostics, document) = openAndCheckDocument(server, program)
     assert(diagnostics.isEmpty)
+    val fnsCompletion = server.complete(DocumentPosition(document, Position(4, 44)))
+    assert(Seq(CompletionItem("reduce")).diff(fnsCompletion.items).isEmpty)
+
+//    val fnsCompletion = server.hoverRequest(DocumentPosition(document, Position(4, 44)))
+//    assert(Seq(CompletionItem("reduce")).diff(fnsCompletion.items).isEmpty)
   }
 
   test("basic crash test") {
@@ -253,7 +258,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
   // TODO move to Miksilo
   def hover(server: LanguageServer, program: String, position: Position): Option[Hover] = {
     val document = openDocument(server, program)
-    Option(server.asInstanceOf[HoverProvider].hoverRequest(TextDocumentHoverRequest(DocumentPosition(document, position))))
+    server.asInstanceOf[HoverProvider].hover(DocumentPosition(document, position))
   }
 
   test("hover") {
@@ -285,5 +290,21 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |  // After the opening parenthesis, Typeless will suggest calling fibonacci with either 2 or 3.
         |}
         |""".stripMargin
+  }
+
+  test("infinite recursion stops") {
+    val program =
+      """const neverStopsTest = () => {
+        |  neverStops();
+        |}
+        |
+        |const neverStops = () => {
+        |  neverStops();
+        |}
+        |""".stripMargin
+
+    val expected = Seq(Diagnostic(HumanPosition(6, 3).span(12), Some(1), "Call takes too long for a test"))
+    val diagnostics = getDiagnostics(server, program)
+    assertResult(expected)(diagnostics)
   }
 }

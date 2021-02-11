@@ -3,7 +3,7 @@ package typeless.ast
 import miksilo.editorParser.parsers.SourceElement
 import miksilo.editorParser.parsers.editorParsers.OffsetPointerRange
 import miksilo.languageServer.core.language.FileElement
-import typeless.interpreter.{BooleanValue, Context, ExceptionResult, ExpressionResult, QueryException, ReturnedValue, ScopeInformation, StatementResult, TypeError, Value, VoidResult}
+import typeless.interpreter.{BooleanValue, Context, ExceptionResult, ExpressionResult, FindScope, QueryException, ReturnedValue, Scan, ScopeInformation, StatementResult, TypeError, Value, VoidResult}
 import typeless.interpreter
 
 case class ExpressionStatement(range: OffsetPointerRange, expression: Expression) extends Statement {
@@ -26,9 +26,12 @@ trait NameLike extends SourceElement {
     for {
       value <- result.toValue
       definedAt <- value.definedAt
-      references <- context.referencesOption
+      references <- context.configuration.mode match {
+        case scan: Scan => Some(scan)
+        case _ => None
+      }
     } yield {
-      references.referenceToDefinition += this -> definedAt
+      references.addReference(this, definedAt)
     }
   }
 }
@@ -54,7 +57,7 @@ case class Declaration(range: OffsetPointerRange, name: Name, value: Expression)
 object Statement {
   def evaluateBody(context: Context, statements: Seq[Statement]): StatementResult = {
     for(statement <- statements) {
-      if (context.collectScopeAtElement.contains(statement)) {
+      if (context.configuration.mode == FindScope(statement)) {
         return ScopeInformation(context.scope)
       }
       statement.evaluate(context) match {
@@ -63,7 +66,7 @@ object Statement {
         case query: QueryException =>
           return query
         case exceptionResult: ExceptionResult =>
-          if (context.collectScopeAtElement.isEmpty && context.throwAtElementResult.isEmpty) {
+          if (!context.configuration.skipErrors) {
            return exceptionResult
           }
       }
