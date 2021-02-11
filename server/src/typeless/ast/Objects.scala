@@ -79,6 +79,8 @@ case class DotAccess(range: OffsetPointerRange, target: Expression, property: Na
       if (context.collectScopeAtElement.contains(property)) {
         return ScopeInformation(targetObject)
       }
+      targetObject.members.get(property.name).foreach(memberValue =>
+        property.addReference(context, memberValue))
       targetObject.getMember(property.name) match {
         case Some(memberValue) => {
           property.addReference(context, memberValue)
@@ -100,9 +102,8 @@ case class DotAccess(range: OffsetPointerRange, target: Expression, property: Na
   override def assign(context: Context, value: Expression): ExpressionResult = {
     context.evaluateObjectValue(target).flatMap(targetValue => {
       val targetObject = targetValue.asInstanceOf[ObjectValue]
+      targetObject.members.get(property.name).foreach(memberValue => property.addReference(context, memberValue))
       context.evaluateExpression(value).flatMap(valueValue => {
-        targetObject.members.get(property.name).foreach(memberValue => property.addReference(context, memberValue))
-
         valueValue.definedAt = Some(property)
         targetObject.setMember(property.name, valueValue)
         valueValue

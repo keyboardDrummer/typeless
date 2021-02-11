@@ -3,8 +3,17 @@ package typeless.interpreter
 import miksilo.editorParser.parsers.SourceElement
 import typeless.ast.{Expression, NameLike, ScopeInformation, StringValue}
 
-class References(var references: Map[NameLike, SourceElement] = Map.empty) {
+class References() {
+  var referenceToDefinition: Map[NameLike, NameLike] = Map.empty
+  private var definitionToReferences: Map[NameLike, Set[NameLike]] = Map.empty
 
+  def getReferences(definition: NameLike): Set[NameLike] = {{
+    definitionToReferences.getOrElse(definition, Set.empty)
+  }}
+
+  def computeReferencesPerDeclaration(): Unit = {
+    definitionToReferences = referenceToDefinition.groupMapReduce(e => e._2)(e => Set(e._1))((a, b) => a ++ b)
+  }
 }
 
 class Context(val allowUndefinedPropertyAccess: Boolean,
@@ -51,12 +60,12 @@ class Context(val allowUndefinedPropertyAccess: Boolean,
 
   def get(element: SourceElement, name: String): ExpressionResult = scope.get(element, name)
 
-  def declareWith(source: SourceElement, name: String, value: Value): Boolean = {
+  def declareWith(source: NameLike, name: String, value: Value): Boolean = {
     value.definedAt = Some(source)
     scope.declare(name, value)
   }
 
-  def declare(element: SourceElement, name: String): Unit = {
+  def declare(element: NameLike, name: String): Unit = {
     declareWith(element, name, new UndefinedValue)
   }
 

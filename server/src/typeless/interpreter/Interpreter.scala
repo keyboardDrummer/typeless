@@ -4,7 +4,7 @@ import miksilo.editorParser.parsers.SourceElement
 import miksilo.languageServer.core.language.{Compilation, Phase, SourcePathFromElement}
 import miksilo.languageServer.core.smarts.FileDiagnostic
 import miksilo.lspprotocol.lsp.Diagnostic
-import typeless.ast.{JavaScriptFile, Lambda, ScopeLike, Statement}
+import typeless.ast.{JavaScriptFile, Lambda, NameLike, ScopeLike, Statement}
 import typeless.server.JavaScriptCompilation
 
 import scala.collection.mutable
@@ -116,7 +116,7 @@ trait Value extends ExpressionResult {
     f(this)
   }
 
-  var definedAt: Option[SourceElement] = None
+  var definedAt: Option[NameLike] = None
   var createdAt: SourceElement = null
   var documentation: Option[String] = None
 
@@ -255,6 +255,7 @@ object InterpreterPhase {
       }
     })
 
+    javaScriptCompilation.references.computeReferencesPerDeclaration()
     context.referencesOption = None
   }
 }

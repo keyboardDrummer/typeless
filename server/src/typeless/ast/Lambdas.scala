@@ -9,7 +9,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 
-case class Argument(range: OffsetPointerRange, name: String, varArgs: Boolean) extends FileElement {
+case class Argument(range: OffsetPointerRange, name: String, varArgs: Boolean) extends FileElement with NameLike {
 
 }
 

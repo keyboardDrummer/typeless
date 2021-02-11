@@ -19,7 +19,7 @@ case class ExpressionStatement(range: OffsetPointerRange, expression: Expression
   }
 }
 
-trait NameLike {
+trait NameLike extends SourceElement {
   val name: String
 
   def addReference(context: Context, result: ExpressionResult): Unit = {
@@ -28,7 +28,7 @@ trait NameLike {
       definedAt <- value.definedAt
       references <- context.referencesOption
     } yield {
-      references.references += this -> definedAt
+      references.referenceToDefinition += this -> definedAt
     }
   }
 }
@@ -47,7 +47,7 @@ case class Declaration(range: OffsetPointerRange, name: Name, value: Expression)
   }
 
   override def childElements: Seq[SourceElement] = {
-    Seq(value)
+    Seq(name, value)
   }
 }
 

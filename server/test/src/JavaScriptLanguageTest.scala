@@ -201,7 +201,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
 
     // TODO enable accurate code completion between statements by inserting No-op statements where needed.
     // assertResult(Seq(globalItem))(complete(server, program, HumanPosition(4, 4)).items)
-    //assertResult(Seq(globalItem, localItem))(complete(server, program, HumanPosition(7, 4)).items)
+    // assertResult(Seq(globalItem, localItem))(complete(server, program, HumanPosition(7, 4)).items)
   }
 
   test("code completion across methods") {
@@ -221,7 +221,26 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
     assertResult(expected)(definitions)
   }
 
-  // References
+  test("references") {
+    val program =
+      """const getNameTest = () => {
+        |  const person = { name: "Remy", age: 32 };
+        |  assert.strictEquals(getName(person), "Remy");
+        |};
+        |
+        |const getName = (person) => {
+        |  return person.name
+        |};
+        |""".stripMargin
+    val expected = Seq(SourceRange(HumanPosition(3, 31), HumanPosition(3, 37)))
+    val definitions = references(server, program, HumanPosition(2, 9), includeDeclaration = false).map(fr => fr.range)
+    assertResult(expected)(definitions)
+
+    val expected2 = Seq(SourceRange(HumanPosition(7, 17), HumanPosition(7, 21)))
+    val definitions2 = references(server, program, HumanPosition(2, 20), includeDeclaration = false).map(fr => fr.range)
+    assertResult(expected2)(definitions2)
+  }
+
   // Rename
   // Hover
 

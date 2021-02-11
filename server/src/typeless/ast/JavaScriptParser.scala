@@ -14,7 +14,7 @@ object JavaScriptParser extends CommonStringReaderParser
 
   //  lazy val array = ("[" ~> valueParser.manySeparated(",", "value") ~< "]").
   //    withSourceRange((range, value) => JsonArray(Some(range), value.toArray))
-  lazy val objectMember = (parseIdentifier | stringLiteral) ~< ":" ~ expression
+  lazy val objectMember = name ~< ":" ~ expression
   lazy val objectLiteral = (literal("{", 2 * History.missingInputPenalty) ~>
     objectMember.manySeparated(",", "member") ~< "}").
     withSourceRange((range, value) => ObjectLiteral(range, ListMap.from(value)))

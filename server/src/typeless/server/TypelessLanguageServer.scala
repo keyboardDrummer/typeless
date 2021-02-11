@@ -11,10 +11,10 @@ import typeless.miksilooverwrite.BaseMiksiloLanguageServer
 
 class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompilation](JavaScriptLanguage)
   with DefinitionProvider
-//  with ReferencesProvider
+  with ReferencesProvider
   with CompletionProvider
-//  with DocumentSymbolProvider
-//  with RenameProvider
+  //  with DocumentSymbolProvider
+  //  with RenameProvider
 {
   def getSourceElementValue(element: SourceElement): Option[Value] = {
     getSourceElementResult(element).flatMap(r => r match {
@@ -27,7 +27,7 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
     val context = getCompilation.context
     context.collectScopeAtElement = Some(element)
     context.throwAtElementResult = None
-    for(test <- getCompilation.tests.values) {
+    for (test <- getCompilation.tests.values) {
       val result = test.evaluate(context, Seq.empty)
       result match {
         case information: ScopeInformation =>
@@ -42,7 +42,7 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
   def getSourceElementResult(element: SourceElement): Option[ExpressionResult] = {
     val context = getCompilation.context
     context.throwAtElementResult = Some(element)
-    for(test <- getCompilation.tests.values) {
+    for (test <- getCompilation.tests.values) {
       val result = test.evaluate(context, Seq.empty)
       result match {
         case information: ReturnInformationWithThrow =>
@@ -96,66 +96,55 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
 
     CompletionList(isIncomplete = false, completions)
   }
-//
-//  def getDefinitionFromDefinitionOrReferencePosition(proofs: Proofs, element: SourcePath): Option[NamedDeclaration] = {
-//    proofs.scopeGraph.findDeclaration(element).orElse(proofs.gotoDefinition(element))
-//  }
-//
-//  override def references(parameters: ReferencesParams): collection.Seq[FileRange] = {
-//    logger.debug("Went into references")
-//    val text: ParseText = documentManager.getFileParseText(parameters.textDocument.uri)
-//    val maybeResult = for {
-//      proofs <- getProofs
-//      element <- getSourceElement(text, FilePosition(parameters.textDocument.uri, parameters.position))
-//      definition <- getDefinitionFromDefinitionOrReferencePosition(proofs, element)
-//    } yield {
-//
-//      val referencesRanges: collection.Seq[FileRange] = for {
-//        references <- proofs.findReferences(definition)
-//        range <- references.origin.flatMap(e => e.fileRange.map(FileRange.fromOffsetRange(text, _))).toSeq
-//      } yield range
-//
-//      var fileRanges: collection.Seq[FileRange] = referencesRanges
-//      if (parameters.context.includeDeclaration)
-//        fileRanges = definition.origin.flatMap(o => o.fileRange.map(FileRange.fromOffsetRange(text, _))).toSeq ++ fileRanges
-//
-//      fileRanges
-//    }
-//    maybeResult.getOrElse(Seq.empty)
-//  }
-//
-//  override def documentSymbols(params: DocumentSymbolParams): Seq[SymbolInformation] = {
-//    val proofs = getCompilation.proofs
-//    if (proofs == null)
-//      return Seq.empty
-//
-//    val text = documentManager.getFileParseText(params.textDocument.uri)
-//
-//    val declarations = getCompilation.proofs.scopeGraph.declarationsPerFile.getOrElse(params.textDocument.uri, Seq.empty).toSeq
-//    declarations.
-//      filter(declaration => declaration.name.nonEmpty && {
-//        if (declaration.origin.isEmpty) {
-//          logger.error(s"[BUG] Empty origin for declaration ${declaration.name}")
-//          false
-//        } else if (declaration.origin.get.fileRange.isEmpty) {
-//          logger.error(s"[BUG] Empty fileRange for declaration ${declaration.name}")
-//          false
-//        } else {
-//          true
-//        }
-//      }).
-//      map(declaration => {
-//        val fileRange = FileRange.fromOffsetRange(text, declaration.origin.get.fileRange.get)
-//        SymbolInformation(declaration.name, SymbolKind.Variable, fileRange, None)
-//      })
-//  }
-//
-//  override def rename(params: RenameParams): WorkspaceEdit = {
-//    val locations = references(ReferencesParams(params.textDocument, params.position, ReferenceContext(true)))
-//    WorkspaceEdit(locations.groupBy(l => l.uri).map(t => {
-//      (t._1, t._2.map(r => TextEdit(r.range, params.newName)))
-//    }))
-//  }
+
+  override def references(parameters: ReferencesParams): collection.Seq[FileRange] = {
+    logger.debug("Went into references")
+    val text: ParseText = documentManager.getFileParseText(parameters.textDocument.uri)
+    val sourceElementOption = getSourceElement(text, FilePosition(parameters.textDocument.uri, parameters.position))
+
+    sourceElementOption.fold(Seq.empty[FileRange])(element => {
+      val sourceElement = element.asInstanceOf[SourcePathFromElement].sourceElement
+      sourceElement match {
+        case name: NameLike =>
+          getCompilation.references.getReferences(name).
+            toSeq.flatMap(n => n.rangeOption.map(r => FileRange(parameters.textDocument.uri, r.toSourceRange)).toSeq)
+      }
+    })
+  }
+
+  //
+  //  override def documentSymbols(params: DocumentSymbolParams): Seq[SymbolInformation] = {
+  //    val proofs = getCompilation.proofs
+  //    if (proofs == null)
+  //      return Seq.empty
+  //
+  //    val text = documentManager.getFileParseText(params.textDocument.uri)
+  //
+  //    val declarations = getCompilation.proofs.scopeGraph.declarationsPerFile.getOrElse(params.textDocument.uri, Seq.empty).toSeq
+  //    declarations.
+  //      filter(declaration => declaration.name.nonEmpty && {
+  //        if (declaration.origin.isEmpty) {
+  //          logger.error(s"[BUG] Empty origin for declaration ${declaration.name}")
+  //          false
+  //        } else if (declaration.origin.get.fileRange.isEmpty) {
+  //          logger.error(s"[BUG] Empty fileRange for declaration ${declaration.name}")
+  //          false
+  //        } else {
+  //          true
+  //        }
+  //      }).
+  //      map(declaration => {
+  //        val fileRange = FileRange.fromOffsetRange(text, declaration.origin.get.fileRange.get)
+  //        SymbolInformation(declaration.name, SymbolKind.Variable, fileRange, None)
+  //      })
+  //  }
+  //
+  //  override def rename(params: RenameParams): WorkspaceEdit = {
+  //    val locations = references(ReferencesParams(params.textDocument, params.position, ReferenceContext(true)))
+  //    WorkspaceEdit(locations.groupBy(l => l.uri).map(t => {
+  //      (t._1, t._2.map(r => TextEdit(r.range, params.newName)))
+  //    }))
+  //  }
   override def createCompilation(cache: CompilationCache, rootFile: Option[String]): JavaScriptCompilation =
     new JavaScriptCompilation(cache, rootFile)
 }

@@ -21,20 +21,23 @@ case class StringLiteral(range: OffsetPointerRange, value: String) extends Expre
   }
 }
 
-case class ObjectLiteral(range: OffsetPointerRange, members: ListMap[String, Expression]) extends Expression {
+case class ObjectLiteral(range: OffsetPointerRange, members: ListMap[Name, Expression]) extends Expression {
   override def evaluate(context: Context): ExpressionResult = {
     val result = new ObjectValue()
     for(e <- members) {
       context.evaluateExpression(e._2) match {
         case e: ExceptionResult => return e
-        case value: Value => result.members.put(e._1, value)
+        case value: Value => {
+          value.definedAt = Some(e._1)
+          result.members.put(e._1.name, value)
+        }
       }
     }
     result
   }
 
   override def childElements: Seq[SourceElement] = {
-    members.values.toSeq
+    members.flatMap(e => Seq(e._1, e._2)).toSeq
   }
 }
 
