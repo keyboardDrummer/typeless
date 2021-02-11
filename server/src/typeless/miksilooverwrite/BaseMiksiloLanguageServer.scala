@@ -1,4 +1,4 @@
-package typeless.miksilo
+package typeless.miksilooverwrite
 
 import miksilo.editorParser.LazyLogging
 import miksilo.editorParser.parsers.core.ParseText

@@ -1,5 +1,7 @@
-import mill._, scalalib._
+import mill._
+import scalalib._
 import coursier.maven.MavenRepository
+import scala.sys.process.Process
 
 
 object server extends ScalaModule {
@@ -19,5 +21,17 @@ object server extends ScalaModule {
       ivy"org.scalatest::scalatest::3.1.1"
     )
     def testFrameworks = Seq("org.scalatest.tools.Framework")
+  }
+
+  def vscode() = T.command {
+    val assemblyPath: PathRef = server.assembly()
+
+    val extensionPath = os.pwd / "vscode-extension"
+    val outPath = extensionPath  / "out"
+
+    os.copy(assemblyPath.path, outPath / "TypelessLanguageServer.jar", replaceExisting = true)
+
+    val vscode = Process(Seq("code", s"--extensionDevelopmentPath=$extensionPath"), None)
+    vscode.!
   }
 }

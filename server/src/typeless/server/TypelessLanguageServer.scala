@@ -7,7 +7,7 @@ import miksilo.lspprotocol.lsp._
 import typeless.JavaScriptLanguage
 import typeless.ast.{NameLike, ScopeInformation, ScopeLike}
 import typeless.interpreter.{ExpressionResult, ReturnInformationWithThrow, Value}
-import typeless.miksilo.BaseMiksiloLanguageServer
+import typeless.miksilooverwrite.BaseMiksiloLanguageServer
 
 class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompilation](JavaScriptLanguage)
   with DefinitionProvider
