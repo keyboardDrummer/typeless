@@ -10,12 +10,11 @@ import typeless.server.JavaScriptCompilation
 import scala.collection.mutable
 
 trait StatementResult {
-  def toExpressionResult(): ExpressionResult
+  def toExpressionResult: ExpressionResult
 }
 
-
 case class ReturnedValue(value: Value) extends StatementResult {
-  override def toExpressionResult(): ExpressionResult = value
+  override def toExpressionResult: ExpressionResult = value
 }
 
 
@@ -41,7 +40,7 @@ trait ExceptionResult extends ExpressionResult with StatementResult {
 
   override def flatMap(f: Value => ExpressionResult): ExpressionResult = this
 
-  override def toExpressionResult(): ExpressionResult = this
+  override def toExpressionResult: ExpressionResult = this
 }
 
 case class UndefinedMemberAccess(element: SourceElement, name: String, value: Value) extends DiagnosticExceptionResult {
@@ -125,7 +124,7 @@ trait Value extends ExpressionResult {
 }
 
 object Void extends StatementResult {
-  override def toExpressionResult(): ExpressionResult = new UndefinedValue()
+  override def toExpressionResult: ExpressionResult = new UndefinedValue()
 }
 
 class FunctionCorrectness(functionsWithTests: Map[Closure, Closure]) {
@@ -200,7 +199,7 @@ class Closure(val lambda: Lambda, val state: Scope) extends Value with ClosureLi
     lambda.arguments.zip(argumentValues).foreach(t => {
       newContext.declareWith(t._1, t._1.name, t._2)
     })
-    Statement.evaluateBody(newContext, lambda.body).toExpressionResult()
+    Statement.evaluateBody(newContext, lambda.body).toExpressionResult
   }
 }
 
