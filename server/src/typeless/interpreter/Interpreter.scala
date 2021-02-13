@@ -77,43 +77,6 @@ class IntValue(val value: Int) extends PrimitiveValue[Int] {
 class UndefinedValue extends Value {
 }
 
-object ArrayReduce extends ClosureLike {
-
-  override def represent(depth: Int): String = "reduce"
-
-  override def evaluate(context: Context, argumentValues: collection.Seq[Value]): ExpressionResult = {
-    if (argumentValues.isEmpty)
-      return NativeCallFailed(Seq.empty)
-
-    val hasSeed = argumentValues.size > 1
-    val reduceFunctionValue = argumentValues.head
-    if (!reduceFunctionValue.isInstanceOf[ClosureLike]) {
-      return TypeError(reduceFunctionValue.createdAt, "that can be called", reduceFunctionValue)
-    }
-    val reduceFunction = reduceFunctionValue.asInstanceOf[ClosureLike]
-
-    val thisValue = context.getThis
-    if (!thisValue.isInstanceOf[ArrayValue]) {
-      return TypeError(reduceFunctionValue.createdAt, "that has elements", reduceFunctionValue)
-    }
-    val array = thisValue.asInstanceOf[ArrayValue]
-
-    val startIndex = if (hasSeed) 0 else 1
-    val seed = if (hasSeed) argumentValues(1) else array.get(0)
-    val length = array.length
-
-    var accumulator = seed
-    for(index <- startIndex.until(length)) {
-      val element = array.get(index)
-      val result = reduceFunction.evaluate(context, Seq[Value](accumulator, element))
-      result match {
-        case e: ExceptionResult => return e
-        case value: Value => accumulator = value
-      }
-    }
-    accumulator
-  }
-}
 
 class ArrayValue(elements: collection.Seq[Value])
   extends ObjectValue(mutable.HashMap.from(elements.view.zipWithIndex.map(v => (v._2.toString, v._1)))) {
@@ -266,6 +229,7 @@ case class NotImplementedException(element: SourceElement) extends SimpleExcepti
 }
 
 trait ClosureLike extends Value {
+  override def represent(depth: Int): String = "native function"
   def evaluate(context: Context, argumentValues: collection.Seq[Value]): ExpressionResult
 }
 

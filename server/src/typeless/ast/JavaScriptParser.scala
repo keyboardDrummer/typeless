@@ -59,7 +59,7 @@ object JavaScriptParser extends CommonStringReaderParser
   lazy val expression20: Parser[Expression] = new Lazy(newParser | callExpression | dotAccess | bracketAccess | expression21)
 
   val multiplication = (expression15 ~< "*" ~ expression15).withSourceRange((range, t) => new Multiplication(range, t._1, t._2))
-  val modulo = (expression15 ~< "%" ~ expression15).withSourceRange((range, t) => new Multiplication(range, t._1, t._2))
+  val modulo = (expression15 ~< "%" ~ expression15).withSourceRange((range, t) => new Modulo(range, t._1, t._2))
   lazy val expression15: Parser[Expression] = new Lazy(multiplication | modulo | expression20)
 
   val addition = (expression14 ~< "+" ~ expression14).withSourceRange((range, t) => new Addition(range, t._1, t._2))

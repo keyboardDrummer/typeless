@@ -93,7 +93,8 @@ class WholeNumber(val range: OffsetPointerRange, int: Int) extends Expression {
 class Modulo(val range: OffsetPointerRange, val left: Expression, val right: Expression) extends BinaryExpression {
   override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = {
     (leftValue, rightValue) match {
-      case (leftInt: IntValue, rightInt: IntValue) => new IntValue(leftInt.value % rightInt.value)
+      case (leftInt: IntValue, rightInt: IntValue) =>
+        new IntValue(leftInt.value % rightInt.value)
       case _ => TypeError(this, "that supports %", leftValue)
     }
   }

@@ -4,6 +4,7 @@ import miksilo.editorParser.parsers.SourceElement
 import miksilo.editorParser.parsers.editorParsers.OffsetPointerRange
 import miksilo.lspprotocol.lsp.Diagnostic
 
+// TODO fix calls of this function
 case class NativeCallFailed(expectedValues: Seq[Value]) extends ExceptionResult
 
 object NativeElement extends SourceElement {
@@ -37,16 +38,47 @@ object StandardLibrary {
   }
 }
 
-class NativeException(message: String) extends UserExceptionResult {
-  override def canBeModified: Boolean = true
+object ArrayReduce extends ClosureLike {
 
-  override def toDiagnostic: Diagnostic = new Diagnostic(null, severity = Some(1), message = message)
+  override def evaluate(context: Context, argumentValues: collection.Seq[Value]): ExpressionResult = {
+    if (argumentValues.isEmpty)
+      return NativeCallFailed(Seq.empty)
+
+    val hasSeed = argumentValues.size > 1
+    val reduceFunctionValue = argumentValues.head
+    if (!reduceFunctionValue.isInstanceOf[ClosureLike]) {
+      return TypeError(reduceFunctionValue.createdAt, "that can be called", reduceFunctionValue)
+    }
+    val reduceFunction = reduceFunctionValue.asInstanceOf[ClosureLike]
+
+    val thisValue = context.getThis
+    if (!thisValue.isInstanceOf[ArrayValue]) {
+      return TypeError(reduceFunctionValue.createdAt, "that has elements", reduceFunctionValue)
+    }
+    val array = thisValue.asInstanceOf[ArrayValue]
+
+    val startIndex = if (hasSeed) 0 else 1
+    val seed = if (hasSeed) argumentValues(1) else array.get(0)
+    val length = array.length
+
+    var accumulator = seed
+    for(index <- startIndex.until(length)) {
+      val element = array.get(index)
+      val result = reduceFunction.evaluate(context, Seq[Value](accumulator, element))
+      result match {
+        case e: ExceptionResult => return e
+        case value: Value => accumulator = value
+      }
+    }
+    accumulator
+  }
 }
 
 object AssertStrictEqual extends ClosureLike {
+
   override def evaluate(context: Context, argumentValues: collection.Seq[Value]): ExpressionResult = {
     if (argumentValues.length != 2) {
-      return new NativeException("strictEqual must be called with 2 arguments")
+      return NativeCallFailed(Seq.empty)
     }
     val actual = argumentValues(0)
     val expected = argumentValues(1)
