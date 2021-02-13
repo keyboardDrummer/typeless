@@ -11,6 +11,8 @@ object JavaScriptParser extends CommonStringReaderParser
   with LeftRecursiveCorrectingParserWriter
   with WhitespaceParserWriter {
 
+  override val maxListDepth: Int = 1000
+
   override def trivia: Parser[String] = {
     val lineComment = parseRegex("""//[^\n]*""".r, "line comment")
     lineComment | whiteSpace
@@ -18,7 +20,10 @@ object JavaScriptParser extends CommonStringReaderParser
 
   val booleanParser = ("true" ~> succeed(true) | "false" ~> succeed(false)).
     withSourceRange((range, value) => BooleanLiteral(range, value))
-  val stringLiteralParser: Parser[StringLiteral] = stringLiteral.withSourceRange((range, value) => StringLiteral(range, value))
+  val stringLiteralParser: Parser[StringLiteral] = parseRegex(""""([^"])*"""".r, "string literal").
+    map(s => s.substring(1, s.length - 1)).
+    withSourceRange((range, value) => StringLiteral(range, value))
+  //val stringLiteralParser: Parser[StringLiteral] = stringLiteral.withSourceRange((range, value) => StringLiteral(range, value))
   val numberLiteral = wholeNumber.withSourceRange((range, number) => WholeNumber(range, Integer.parseInt(number)))
   val variableExpression: Parser[VariableReference] = parseIdentifier.withSourceRange((range, name) => new VariableReference(range, name))
   val thisParser: Parser[ThisReference] = ("this": Parser[String]).withSourceRange((range, _) => ThisReference(range))

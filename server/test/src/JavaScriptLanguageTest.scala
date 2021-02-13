@@ -1,10 +1,8 @@
-import miksilo.editorParser.parsers.editorParsers.{Position, SourceRange, TextEdit}
+import miksilo.editorParser.parsers.editorParsers.{Position, TextEdit}
 import miksilo.languageServer.server.LanguageServerTest
 import miksilo.lspprotocol.lsp._
 import org.scalatest.funsuite.AnyFunSuite
 import typeless.server.TypelessLanguageServer
-
-import scala.util.Random
 
 class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
 
@@ -125,13 +123,10 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
     assertResult(expected)(diagnostics)
   }
 
-  // TODO remove the need for the const remy = "Remy" by fixing parser.
-  // TODO remove the need for the parenthesis by fixing parser.
   test("validating values from object members") {
     val program =
-      """const remy = "Remy";
-        |const nameTest = () => {
-        |  assert.strictEqual((new Person(remy)).name, "Remy");
+      """const nameTest = () => {
+        |  assert.strictEqual((new Person("Remy")).name, "Remy");
         |}
         |
         |const Person = (name) => {
@@ -141,8 +136,8 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
 
 
     val (diagnostics, document) = openAndCheckDocument(server, program)
-    val related = RelatedInformation(FileRange(document.uri, HumanPosition(3, 47).span(6)), "Remy")
-    val expected = Seq(Diagnostic(HumanPosition(7, 15).span(7), Some(1),
+    val related = RelatedInformation(FileRange(document.uri, HumanPosition(2, 49).span(6)), "Remy")
+    val expected = Seq(Diagnostic(HumanPosition(6, 15).span(7), Some(1),
       "Expression was 'Elise' while 'Remy' was expected", relatedInformation = Seq(related)))
     assertResult(expected)(diagnostics)
   }
@@ -160,7 +155,6 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
     assertResult(expected)(definitions)
   }
 
-  // TODO remove weird const name = "name" hack when stringLiteral parse weirdness is resolved.
   test("first dot assignment determines definition") {
     val program =
       """const memberAssignmentsTest = () => {
@@ -216,9 +210,6 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
     // assertResult(Seq(globalItem, localItem))(complete(server, program, HumanPosition(7, 4)).items)
   }
 
-  // TODO somehow the comment in the code interacts with the "Remy" somewhere else ???
-  // comment: After the dot, completion results for the 'name' and 'age' are shown
-  // Seems like parser framework problems :((
   test("code completion across methods") {
     val program =
       """const getNameTest = () => {
