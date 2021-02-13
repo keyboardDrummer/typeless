@@ -22,7 +22,7 @@ object JavaScriptLanguageBuilder extends LanguageBuilder {
 
 object JavaScriptLanguage extends Language {
   val parsePhase = Language.getParsePhase[JavaScriptFile]((file, uri) => ChainElement(new RootElement(uri), file),
-    JavaScriptParser.javaScript.getWholeInputParser(), UntilTimeStopFunction(1000))
+    JavaScriptParser.javaScript.getWholeInputParser(), UntilTimeStopFunction(100))
 
   compilerPhases = List(parsePhase, InterpreterPhase.phase)
 }

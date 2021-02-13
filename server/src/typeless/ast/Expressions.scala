@@ -120,7 +120,7 @@ class Multiplication(val range: OffsetPointerRange, val left: Expression, val ri
   override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = {
     (leftValue, rightValue) match {
       case (leftInt: IntValue, rightInt: IntValue) => new IntValue(leftInt.value * rightInt.value)
-      case _ => NotImplementedException(this)
+      case _ => TypeError(left, "that supports the '*' operator", leftValue)
     }
   }
 }
