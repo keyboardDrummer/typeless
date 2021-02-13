@@ -8,7 +8,7 @@ import typeless.interpreter._
 
 import scala.collection.mutable.ArrayBuffer
 
-class Argument(val range: OffsetPointerRange, val name: String, varArgs: Boolean) extends FileElement with NameLike {
+class Argument(val range: OffsetPointerRange, val name: String, val varArgs: Boolean) extends FileElement with NameLike {
 
 }
 
@@ -78,7 +78,7 @@ class Call(val range: OffsetPointerRange, target: Expression, arguments: Vector[
     targetResult match {
       case closure: ClosureLike =>
 
-        val resultOption = context.evaluateClosure(this, closure, () => evaluateClosure(context, argumentValues, closure))
+        val resultOption = evaluateClosure(context, argumentValues, closure)
         if (resultOption.isEmpty)
           return MaxCallDepthReached(this)
 
@@ -109,8 +109,8 @@ class Call(val range: OffsetPointerRange, target: Expression, arguments: Vector[
     }
   }
 
-  def evaluateClosure(context: Context, argumentValues: ArrayBuffer[Value], closure: ClosureLike): ExpressionResult = {
-    closure.evaluate(context, argumentValues)
+  def evaluateClosure(context: Context, argumentValues: ArrayBuffer[Value], closure: ClosureLike): Option[ExpressionResult] = {
+    context.evaluateClosure(this, closure, argumentValues)
   }
 }
 

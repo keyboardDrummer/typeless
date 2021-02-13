@@ -4,6 +4,7 @@ import miksilo.editorParser.parsers.SourceElement
 import typeless.ast.{Call, Expression, MaxCallDepthReached, NameLike, StringValue}
 
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 
 trait RunMode {
   def skipErrors: Boolean
@@ -54,13 +55,13 @@ class Context(var configuration: RunConfiguration,
     this(configuration, mutable.ArrayBuffer.empty, None, Set.empty, scope)
   }
 
-  def evaluateClosure(call: Call, closureLike: ClosureLike, evaluate: () => ExpressionResult): Option[ExpressionResult] = {
+  def evaluateClosure(call: Call, closure: ClosureLike, argumentValues: collection.Seq[Value]): Option[ExpressionResult] = {
 
     if (callStack.length > configuration.maxCallDepth) {
       return None
     }
-    callStack.addOne(Frame(call, closureLike))
-    val result = evaluate()
+    callStack.addOne(Frame(call, closure))
+    val result = closure.evaluate(this, argumentValues)
     callStack.remove(callStack.length - 1)
     Some(result)
   }
@@ -133,7 +134,8 @@ class Context(var configuration: RunConfiguration,
     val result = evaluateExpression(expression)
     result match {
       case value: ObjectValue => value
-      case value: Value => TypeError(expression, "with fields", value)
+      case value: Value =>
+        TypeError(expression, "with fields", value)
       case e: ExceptionResult => e
     }
   }

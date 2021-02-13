@@ -8,17 +8,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
 
   val server = new TypelessLanguageServer()
 
-  ignore("parser") {
-    val program =
-      """const getNameTest = () => {
-        |  const person = new Person(32);
-        |}
-        |""".stripMargin
-    val (diagnostics, document) = openAndCheckDocument(server, program)
-    assert(diagnostics.isEmpty)
-  }
-
-  test("demo code completion") {
+  ignore("demo code completion") {
     val program =
       """function getNameTest() {
         |  const person = new Person("Remy", 32);
@@ -34,8 +24,8 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |  return person. == "Remy";
         |}
         |""".stripMargin
-    val (diagnostics, document) = openAndCheckDocument(server, program)
-    assert(diagnostics.isEmpty)
+
+    ???
   }
 
   test("demo hover and assert") {
@@ -72,7 +62,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
     assertResult(expectedNameHover)(nameHover)
   }
 
-  test("native call failed diagnostics") {
+  test("assert diagnostics") {
     val program =
       """function fooTest() {
         |  assert(3);
@@ -84,7 +74,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
     assert(diagnostics.size == 1)
   }
 
-  ignore("first example test") {
+  test("first example test") {
 
     val program =
       """const pipeTest = () => {
@@ -92,21 +82,21 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |  assert(1, plusOneTimesTwoMinusOne(0))
         |  assert(3, plusOneTimesTwoMinusOne(1))
         |}
-        |const pipe = (...fns) => p => fns.reduce((acc, cur) => cur(acc), p);
+        |function pipe(...fns) { return p => fns.reduce((acc, cur) => cur(acc), p); }
         |// When typing 'fns.' code completion for arrays is shown.
         |// When typing 'reduce(', example arguments like 'x => x + 1' are shown.
         |// Hovering over 'cur', 'acc' or 'p' shows us the values these variables can get when running the test.
         |
         |const isNameOfEvenLengthTest = () => {
-        |  assert(true, isNameOfEvenLength({ name: "Remy" }))
-        |  assert(false, isNameOfEvenLength({ name: "Elise" }))
+        |  assert(isNameOfEvenLength({ name: "Remy" }))
+        |  assert.strictEqual(isNameOfEvenLength({ name: "Elise" }), false)
         |}
         |const isNameOfEvenLength = pipe(person => person.name, str => str.length, x => x % 2 == 0)
         |// When typing 'pipe(', example arguments to pipe such as 'x => x + 1' are shown.
         |// When typing 'person.', code completion suggests 'name'.
         |// When typing 'str.', code completion for string members is shown.
         |
-        |const isRemyEven = isNameOfEvenLength({ name: "Remy" })
+        |// const isRemyEven = isNameOfEvenLength({ name: "Remy" })
         |// Hovering over isRemyEven shows us that it can have the values 'true' and 'false'
         |""".stripMargin
 

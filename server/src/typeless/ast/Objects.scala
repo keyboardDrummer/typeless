@@ -8,11 +8,11 @@ import scala.collection.mutable.ArrayBuffer
 
 class New(range: OffsetPointerRange, target: Expression, arguments: Vector[Expression]) extends Call(range, target, arguments) {
 
-  override def evaluateClosure(context: Context, argumentValues: ArrayBuffer[Value], closure: ClosureLike): ExpressionResult = {
+  override def evaluateClosure(context: Context, argumentValues: ArrayBuffer[Value], closure: ClosureLike): Option[ExpressionResult] = {
     // TODO, assign __proto__ field from closure.prototype
     val newObj = new ObjectValue()
     context.setThis(newObj)
-    super.evaluateClosure(context, argumentValues, closure) match {
+    super.evaluateClosure(context, argumentValues, closure).map {
       case _: UndefinedValue => newObj
       case result => result
     }

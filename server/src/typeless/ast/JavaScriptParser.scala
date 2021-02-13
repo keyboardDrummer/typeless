@@ -78,7 +78,7 @@ object JavaScriptParser extends CommonStringReaderParser
   lazy val expression3: Parser[Expression] = new Lazy(assignment | expression11)
 
   val argument: Parser[Argument] = ("...".option ~ parseIdentifier).
-    withSourceRange((range, name) => new Argument(range, name._2, name._1.isEmpty))
+    withSourceRange((range, name) => new Argument(range, name._2, name._1.nonEmpty))
   val arguments: Parser[Vector[Argument]] = "(" ~> argument.manySeparated(",", "argument") ~< ")"
   lazy val lambdaBody = body | expression.map(expr => Vector(new ExpressionStatement(expr.range, expr)))
   val lambdaArguments: Parser[Vector[Argument]] = arguments | argument.map(a => Vector(a))
