@@ -6,7 +6,7 @@ import miksilo.languageServer.core.language.FileElement
 import typeless.interpreter.{BooleanValue, Context, ExceptionResult, ExpressionResult, FindScope, QueryException, ReturnedValue, Scan, ScopeInformation, StatementResult, TypeError, Value, VoidResult}
 import typeless.interpreter
 
-case class ExpressionStatement(range: OffsetPointerRange, expression: Expression) extends Statement {
+class ExpressionStatement(val range: OffsetPointerRange, expression: Expression) extends Statement {
   override def evaluate(context: Context): StatementResult = {
     context.evaluateExpression(expression) match {
       case _: Value => VoidResult
@@ -38,7 +38,7 @@ trait NameLike extends SourceElement {
 
 class Name(val range: OffsetPointerRange, val name: String) extends FileElement with NameLike
 
-case class Declaration(range: OffsetPointerRange, name: Name, value: Expression) extends Statement {
+class Declaration(val range: OffsetPointerRange, name: Name, value: Expression) extends Statement {
   override def evaluate(context: Context): StatementResult = {
     val evaluated = context.evaluateExpression(value)
     evaluated match {
@@ -75,7 +75,7 @@ object Statement {
   }
 }
 
-case class IfStatement(range: OffsetPointerRange,
+class IfStatement(val range: OffsetPointerRange,
                        condition: Expression,
                        thenBody: Seq[Statement],
                        elseBody: Seq[Statement]) extends Statement {

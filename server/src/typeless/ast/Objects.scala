@@ -19,7 +19,7 @@ class New(range: OffsetPointerRange, target: Expression, arguments: Vector[Expre
   }
 }
 
-case class BracketAccess(range: OffsetPointerRange, target: Expression, property: Expression)
+class BracketAccess(val range: OffsetPointerRange, target: Expression, property: Expression)
   extends Expression with AssignmentTarget {
 
   override def evaluate(context: Context): ExpressionResult = {
@@ -57,8 +57,7 @@ case class BracketAccess(range: OffsetPointerRange, target: Expression, property
   }
 }
 
-
-case class DotAccess(range: OffsetPointerRange, target: Expression, property: Name)
+class DotAccess(val range: OffsetPointerRange, target: Expression, property: Name)
   extends Expression with AssignmentTarget {
   override def evaluate(context: Context): ExpressionResult = {
     context.evaluateObjectValue(target).flatMap(targetValue => {
@@ -103,7 +102,7 @@ trait AssignmentTarget extends Expression {
   def assign(context: Context, value: Expression): ExpressionResult
 }
 
-case class Assignment(range: OffsetPointerRange, target: AssignmentTarget, value: Expression) extends Expression {
+class Assignment(val range: OffsetPointerRange, target: AssignmentTarget, value: Expression) extends Expression {
   override def evaluate(context: Context): ExpressionResult = {
     target.assign(context, value)
   }
@@ -113,7 +112,7 @@ case class Assignment(range: OffsetPointerRange, target: AssignmentTarget, value
   }
 }
 
-case class ThisReference(range: OffsetPointerRange) extends Expression {
+class ThisReference(val range: OffsetPointerRange) extends Expression {
   override def evaluate(context: Context): ExpressionResult = {
     context.getThis
   }

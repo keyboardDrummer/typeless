@@ -8,6 +8,67 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
 
   val server = new TypelessLanguageServer()
 
+  ignore("parser") {
+    val program =
+      """const getNameTest = () => {
+        |  const person = new Person(32);
+        |}
+        |""".stripMargin
+    val (diagnostics, document) = openAndCheckDocument(server, program)
+    assert(diagnostics.isEmpty)
+  }
+
+  test("demo2") {
+    val program =
+      """function getNameTest() {
+        |  const person = new Person("Remy", 32);
+        |  assert(isPresenting(person));
+        |}
+        |
+        |function Person(name, age) {
+        |  this.name = name;
+        |  this.age = age;
+        |}
+        |
+        |function isPresenting(person) {
+        |  return person.name == "Remy";
+        |}
+        |""".stripMargin
+    val (diagnostics, document) = openAndCheckDocument(server, program)
+    assert(diagnostics.isEmpty)
+  }
+
+  test("demo") {
+    val program =
+      """function getNameTest() {
+        |  const person = new Person("Remy", 32);
+        |  assert.strictEqual(getName(person), "Remy");
+        |}
+        |
+        |function Person(name, age) {
+        |  this.name = name;
+        |  this.age = age;
+        |}
+        |
+        |function getName(person) {
+        |  return person.name;
+        |}
+        |""".stripMargin
+    val (diagnostics, document) = openAndCheckDocument(server, program)
+    assert(diagnostics.isEmpty)
+  }
+
+  test("native call failed diagnostics") {
+    val program =
+      """function fooTest() {
+        |  assert(3);
+        |}
+        |""".stripMargin
+    val (diagnostics, document) = openAndCheckDocument(server, program)
+
+    // TODO assert more
+    assert(diagnostics.size == 1)
+  }
 
   ignore("first example test") {
 

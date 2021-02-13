@@ -3,25 +3,25 @@ package typeless.ast
 import miksilo.editorParser.parsers.SourceElement
 import miksilo.editorParser.parsers.editorParsers.OffsetPointerRange
 import miksilo.languageServer.core.language.FileElement
-import typeless.interpreter.{BooleanValue, Context, ExceptionResult, ExpressionResult, IntValue, NotImplementedException, ObjectValue, TypeError, Value}
+import typeless.interpreter.{BooleanValue, Context, ExceptionResult, ExpressionResult, IntValue, NotImplementedException, ObjectValue, PrimitiveValue, TypeError, Value}
 
 import scala.collection.immutable.ListMap
 
-case class BooleanLiteral(range: OffsetPointerRange, value: Boolean) extends Expression {
+class BooleanLiteral(val range: OffsetPointerRange, value: Boolean) extends Expression {
   override def evaluate(context: Context): ExpressionResult = new BooleanValue(value)
 }
 
-case class StringValue(value: String) extends Value {
+class StringValue(value: String) extends PrimitiveValue[String](value) {
   override def represent(depth: Int = 1): String = value
 }
 
-case class StringLiteral(range: OffsetPointerRange, value: String) extends Expression {
+class StringLiteral(val range: OffsetPointerRange, value: String) extends Expression {
   override def evaluate(context: Context): ExpressionResult = {
-    StringValue(value)
+    new StringValue(value)
   }
 }
 
-case class ObjectLiteral(range: OffsetPointerRange, members: ListMap[Name, Expression]) extends Expression {
+class ObjectLiteral(val range: OffsetPointerRange, members: ListMap[Name, Expression]) extends Expression {
   override def evaluate(context: Context): ExpressionResult = {
     val result = new ObjectValue()
     for(e <- members) {
@@ -84,15 +84,15 @@ trait BinaryExpression extends Expression {
   }
 }
 
-case class WholeNumber(range: OffsetPointerRange, int: Int) extends Expression {
+class WholeNumber(val range: OffsetPointerRange, int: Int) extends Expression {
   override def evaluate(context: Context): ExpressionResult = new IntValue(int)
 }
 
-case class Modulo(range: OffsetPointerRange, left: Expression, right: Expression) extends BinaryExpression {
+class Modulo(val range: OffsetPointerRange, val left: Expression, val right: Expression) extends BinaryExpression {
   override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult =
     NotImplementedException(this)
 }
-case class Subtraction(range: OffsetPointerRange, left: Expression, right: Expression) extends BinaryExpression {
+class Subtraction(val range: OffsetPointerRange, val left: Expression, val right: Expression) extends BinaryExpression {
   override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = {
     (leftValue, rightValue) match {
       case (leftInt: IntValue, rightInt: IntValue) => new IntValue(leftInt.value - rightInt.value)
@@ -101,7 +101,7 @@ case class Subtraction(range: OffsetPointerRange, left: Expression, right: Expre
   }
 }
 
-case class LessThan(range: OffsetPointerRange, left: Expression, right: Expression) extends BinaryExpression {
+class LessThan(val range: OffsetPointerRange, val left: Expression, val right: Expression) extends BinaryExpression {
   override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = {
     (leftValue, rightValue) match {
       case (leftInt: IntValue, rightInt: IntValue) => new BooleanValue(leftInt.value < rightInt.value)
@@ -110,13 +110,13 @@ case class LessThan(range: OffsetPointerRange, left: Expression, right: Expressi
   }
 }
 
-case class Equals(range: OffsetPointerRange, left: Expression, right: Expression) extends BinaryExpression {
+class Equals(val range: OffsetPointerRange, val left: Expression, val right: Expression) extends BinaryExpression {
   override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = {
     new BooleanValue(Value.strictEqual(leftValue, rightValue))
   }
 }
 
-case class Multiplication(range: OffsetPointerRange, left: Expression, right: Expression) extends BinaryExpression {
+class Multiplication(val range: OffsetPointerRange, val left: Expression, val right: Expression) extends BinaryExpression {
   override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = {
     (leftValue, rightValue) match {
       case (leftInt: IntValue, rightInt: IntValue) => new IntValue(leftInt.value * rightInt.value)
@@ -125,7 +125,7 @@ case class Multiplication(range: OffsetPointerRange, left: Expression, right: Ex
   }
 }
 
-case class Addition(range: OffsetPointerRange, left: Expression, right: Expression) extends BinaryExpression {
+class Addition(val range: OffsetPointerRange, val left: Expression, val right: Expression) extends BinaryExpression {
   override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = {
     (leftValue, rightValue) match {
       case (leftInt: IntValue, rightInt: IntValue) => new IntValue(leftInt.value + rightInt.value)

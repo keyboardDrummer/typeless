@@ -1,5 +1,6 @@
 package typeless
 
+import miksilo.editorParser.parsers.editorParsers.UntilTimeStopFunction
 import miksilo.languageServer.JVMLanguageServer
 import miksilo.languageServer.core.language.Language
 import miksilo.languageServer.server.LanguageBuilder
@@ -20,7 +21,7 @@ object JavaScriptLanguageBuilder extends LanguageBuilder {
 
 object JavaScriptLanguage extends Language {
   val parsePhase = Language.getParsePhase[JavaScriptFile]((file, uri) => file.addFile(uri),
-    JavaScriptParser.javaScript.getWholeInputParser())
+    JavaScriptParser.javaScript.getWholeInputParser(), UntilTimeStopFunction(1000))
 
   compilerPhases = List(parsePhase, InterpreterPhase.phase)
 }

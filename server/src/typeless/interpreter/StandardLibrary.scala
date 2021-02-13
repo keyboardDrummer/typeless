@@ -4,12 +4,7 @@ import miksilo.editorParser.parsers.SourceElement
 import miksilo.editorParser.parsers.editorParsers.OffsetPointerRange
 import miksilo.lspprotocol.lsp.Diagnostic
 
-case class NativeCallFailed(expectedValues: Seq[Value]) extends SimpleExceptionResult {
-
-  override def message: String = "assertion failed"
-
-  override def element: SourceElement = NativeElement
-}
+case class NativeCallFailed(expectedValues: Seq[Value]) extends ExceptionResult
 
 object NativeElement extends SourceElement {
   override def rangeOption: Option[OffsetPointerRange] = None

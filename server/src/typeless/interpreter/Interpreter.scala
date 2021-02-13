@@ -4,7 +4,7 @@ import miksilo.editorParser.parsers.SourceElement
 import miksilo.languageServer.core.language.{Compilation, Phase, SourcePathFromElement}
 import miksilo.languageServer.core.smarts.FileDiagnostic
 import miksilo.lspprotocol.lsp.{Diagnostic, FileRange, RelatedInformation}
-import typeless.ast.{JavaScriptFile, Lambda, NameLike, Statement}
+import typeless.ast.{JavaScriptFile, Lambda, NameLike, Statement, StringValue}
 import typeless.server.JavaScriptCompilation
 
 import scala.collection.mutable
@@ -108,7 +108,7 @@ object Value {
       return true
 
     (first, second) match {
-      case (firstInt: IntValue, secondInt: IntValue) if firstInt.value == secondInt.value => true
+      case (firstInt: PrimitiveValue[_], secondInt: PrimitiveValue[_]) if firstInt.value == secondInt.value => true
       case _ => false
     }
 
@@ -128,6 +128,9 @@ trait Value extends ExpressionResult {
   var documentation: Option[String] = None
 
   def represent(depth: Int = 1): String = "some value"
+
+  def toRelatedInformation(file: String): RelatedInformation =
+    RelatedInformation(FileRange(file, createdAt.rangeOption.get.toSourceRange), represent())
 }
 
 object VoidResult extends StatementResult {

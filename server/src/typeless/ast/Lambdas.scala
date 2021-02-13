@@ -8,17 +8,31 @@ import typeless.interpreter._
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
-case class Argument(range: OffsetPointerRange, name: String, varArgs: Boolean) extends FileElement with NameLike {
+class Argument(val range: OffsetPointerRange, val name: String, varArgs: Boolean) extends FileElement with NameLike {
 
 }
 
-case class Lambda(range: OffsetPointerRange, arguments: Vector[Argument], body: Vector[Statement]) extends Expression {
+class Lambda(val range: OffsetPointerRange, val arguments: Vector[Argument], val body: Vector[Statement]) extends Expression {
   override def evaluate(context: Context): ExpressionResult = {
     new Closure(this, context.scope)
   }
 
   override def childElements: Seq[SourceElement] = {
     arguments ++ body
+  }
+}
+
+class IncorrectNativeCall(file: String, exception: NativeCallFailed, call: Call, argumentValues: collection.Seq[Value])
+  extends UserExceptionResult {
+  override def canBeModified: Boolean = false
+
+  override def toDiagnostic: Diagnostic = {
+    val values = argumentValues.map(a => a.represent()).reduce((left, right) => left + ", " + right)
+    // Consider using the exception expected arguments
+    val message = s"Call failed with arguments '$values'."
+
+    val related = argumentValues.map(value => value.toRelatedInformation(file))
+    Diagnostic(call.rangeOption.get.toSourceRange, Some(1), message, relatedInformation = related.toSeq)
   }
 }
 
@@ -35,10 +49,11 @@ class CorrectCallGaveException(file: String, exception: UserExceptionResult, cal
     Diagnostic(call.rangeOption.get.toSourceRange, Some(1), message, relatedInformation = Seq(relatedInfo))
   }
 
-  override def canBeModified: Boolean = true
+  // TODO consider allowing this to be modified and changing the currentClosureCanBeWrong behavior in Call
+  override def canBeModified: Boolean = false
 }
 
-case class Call(range: OffsetPointerRange, target: Expression, arguments: Vector[Expression]) extends Expression {
+class Call(val range: OffsetPointerRange, target: Expression, arguments: Vector[Expression]) extends Expression {
 
   override def childElements: Seq[SourceElement] = {
     Seq(target) ++ arguments
@@ -48,7 +63,7 @@ case class Call(range: OffsetPointerRange, target: Expression, arguments: Vector
     val targetResult = context.evaluateExpression(target)
 
     val argumentResults = arguments.map(argument => context.evaluateExpression(argument))
-    val argumentValues = mutable.ArrayBuffer.empty[Value]
+    val argumentValues = ArrayBuffer.empty[Value]
     for(argumentResult <- argumentResults) {
       argumentResult match {
         case argumentValue: Value => argumentValues.addOne(argumentValue)
@@ -69,6 +84,14 @@ case class Call(range: OffsetPointerRange, target: Expression, arguments: Vector
         val result = evaluateClosure(context, argumentValues, closure)
         context.callStack.remove(context.callStack.length - 1)
         val modifiedResult = result match {
+          case native: NativeCallFailed =>
+            val currentClosureCanBeWrong = !context.isClosureCorrect(context.callStack.last)
+            if (currentClosureCanBeWrong) {
+              new IncorrectNativeCall(context.configuration.file, native, this, argumentValues)
+            } else {
+              native
+            }
+
           case exception: UserExceptionResult =>
             val currentClosureCanBeWrong = !context.isClosureCorrect(context.callStack.last)
             if (exception.canBeModified && context.isClosureCorrect(closure) && currentClosureCanBeWrong) {
@@ -95,7 +118,7 @@ case class MaxCallDepthReached(element: SourceElement) extends SimpleExceptionRe
   override def message: String = "Call takes too long for a test"
 }
 
-case class ReturnStatement(range: OffsetPointerRange, expression: Expression) extends Statement {
+class ReturnStatement(val range: OffsetPointerRange, expression: Expression) extends Statement {
   override def evaluate(context: Context): StatementResult = {
     context.evaluateExpression(expression) match {
       case value: Value => ReturnedValue(value)
