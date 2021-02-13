@@ -4,7 +4,7 @@ import miksilo.editorParser.parsers.SourceElement
 import miksilo.languageServer.core.language.{Compilation, Phase, SourcePathFromElement}
 import miksilo.languageServer.core.smarts.FileDiagnostic
 import miksilo.lspprotocol.lsp.{Diagnostic, FileRange, RelatedInformation}
-import typeless.ast.{Call, IncorrectNativeCall, JavaScriptFile, Lambda, NameLike, Statement, StringValue}
+import typeless.ast.{Call, CallBase, IncorrectNativeCall, JavaScriptFile, Lambda, NameLike, Statement, StringValue}
 import typeless.server.JavaScriptCompilation
 
 import scala.collection.mutable
@@ -66,17 +66,21 @@ case class TypeError(element: SourceElement, expected: String, value: Value)
   override def message: String = s"Expected value $expected but got '${value.represent()}'"
 }
 
-class PrimitiveValue[T](val value: T) extends Value {
+trait PrimitiveValue[T] extends Value {
+  def value: T
   override def represent(depth: Int = 1): String = value.toString
 }
 
-class IntValue(value: Int) extends PrimitiveValue[Int](value) {
+class IntValue(val value: Int) extends PrimitiveValue[Int] {
 }
 
 class UndefinedValue extends Value {
 }
 
 object ArrayReduce extends ClosureLike {
+
+  override def represent(depth: Int): String = "reduce"
+
   override def evaluate(context: Context, argumentValues: collection.Seq[Value]): ExpressionResult = {
     if (argumentValues.isEmpty)
       return NativeCallFailed(Seq.empty)
@@ -95,11 +99,11 @@ object ArrayReduce extends ClosureLike {
     val array = thisValue.asInstanceOf[ArrayValue]
 
     val startIndex = if (hasSeed) 0 else 1
-    val seed = if (hasSeed) argumentValues(2) else array.get(0)
+    val seed = if (hasSeed) argumentValues(1) else array.get(0)
     val length = array.length
 
     var accumulator = seed
-    for(index <- startIndex.to(length)) {
+    for(index <- startIndex.until(length)) {
       val element = array.get(index)
       val result = reduceFunction.evaluate(context, Seq[Value](accumulator, element))
       result match {
@@ -253,7 +257,7 @@ class Closure(val lambda: Lambda, val state: Scope) extends Value with ClosureLi
 
 
 
-class BooleanValue(value: Boolean) extends PrimitiveValue[Boolean](value) {
+class BooleanValue(val value: Boolean) extends PrimitiveValue[Boolean] {
 }
 
 case class NotImplementedException(element: SourceElement) extends SimpleExceptionResult {
@@ -266,7 +270,7 @@ trait ClosureLike extends Value {
 }
 
 
-case class AssertEqualFailure(file: String, call: Call, actual: Value, expected: Value) extends UserExceptionResult {
+case class AssertEqualFailure(file: String, call: CallBase, actual: Value, expected: Value) extends UserExceptionResult {
 
   override def toDiagnostic: Diagnostic = {
     val message = s"Expression was '${actual.represent()}' while '${expected.represent()}' was expected"

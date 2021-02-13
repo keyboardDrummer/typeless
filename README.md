@@ -5,8 +5,8 @@ Typeless provides the great editor tooling we're used to from TypeScript, but th
 ```javascript
 function pipeTest() {
   const plusOneTimesTwoMinusOne = pipe(x => x + 1, x => x * 2, x => x - 1);
-  assert(1, plusOneTimesTwoMinusOne(0))
-  assert(3, plusOneTimesTwoMinusOne(1))
+  assert.strictEqual(plusOneTimesTwoMinusOne(0), 1)
+  assert.strictEqual(plusOneTimesTwoMinusOne(1), 3)
 }
 const pipe = (...fns) => p => fns.reduce((acc, cur) => cur(acc), p);
 // When typing 'fns.' code completion for arrays is shown.
@@ -14,8 +14,8 @@ const pipe = (...fns) => p => fns.reduce((acc, cur) => cur(acc), p);
 // Hovering over 'cur', 'acc' or 'p' shows us the values these variables can get when running the test.
 
 function isNameOfEvenLengthTest() {
-  assert(true, isNameOfEvenLength({ name: "Remy" }))
-  assert(false, isNameOfEvenLength({ name: "Elise" }))
+  assert.strictEqual(isNameOfEvenLength({ name: "Remy" }), true)
+  assert.strictEqual(isNameOfEvenLength({ name: "Elise" }), false)
 }
 const isNameOfEvenLength = pipe(person => person.name, str => str.length, x => x % 2 == 0)
 // When typing 'pipe(', example arguments to pipe such as 'x => x + 1' are shown.

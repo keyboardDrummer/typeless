@@ -79,16 +79,16 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
     val program =
       """const pipeTest = () => {
         |  const plusOneTimesTwoMinusOne = pipe(x => x + 1, x => x * 2, x => x - 1);
-        |  assert(1, plusOneTimesTwoMinusOne(0))
-        |  assert(3, plusOneTimesTwoMinusOne(1))
+        |  assert.strictEqual(plusOneTimesTwoMinusOne(0), 1)
+        |  assert.strictEqual(plusOneTimesTwoMinusOne(1), 3)
         |}
-        |function pipe(...fns) { return p => fns.reduce((acc, cur) => cur(acc), p); }
+        |const pipe = (...fns) => p => fns.reduce((acc, cur) => cur(acc), p);
         |// When typing 'fns.' code completion for arrays is shown.
         |// When typing 'reduce(', example arguments like 'x => x + 1' are shown.
         |// Hovering over 'cur', 'acc' or 'p' shows us the values these variables can get when running the test.
         |
         |const isNameOfEvenLengthTest = () => {
-        |  assert(isNameOfEvenLength({ name: "Remy" }))
+        |  assert(true, isNameOfEvenLength({ name: "Remy" }))
         |  assert.strictEqual(isNameOfEvenLength({ name: "Elise" }), false)
         |}
         |const isNameOfEvenLength = pipe(person => person.name, str => str.length, x => x % 2 == 0)
@@ -96,14 +96,14 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |// When typing 'person.', code completion suggests 'name'.
         |// When typing 'str.', code completion for string members is shown.
         |
-        |// const isRemyEven = isNameOfEvenLength({ name: "Remy" })
+        |const isRemyEven = isNameOfEvenLength({ name: "Remy" })
         |// Hovering over isRemyEven shows us that it can have the values 'true' and 'false'
         |""".stripMargin
 
     val (diagnostics, document) = openAndCheckDocument(server, program)
     assert(diagnostics.isEmpty)
-    val fnsCompletion = server.complete(DocumentPosition(document, Position(4, 44)))
-    assert(Seq(CompletionItem("reduce")).diff(fnsCompletion.items).isEmpty)
+    val fnsCompletion = server.complete(DocumentPosition(document, Position(5, 34)))
+    assert(Seq(CompletionItem("reduce", detail = Some("reduce"))).diff(fnsCompletion.items).isEmpty)
 
 //    val fnsCompletion = server.hoverRequest(DocumentPosition(document, Position(4, 44)))
 //    assert(Seq(CompletionItem("reduce")).diff(fnsCompletion.items).isEmpty)

@@ -6,7 +6,7 @@ import typeless.interpreter._
 
 import scala.collection.mutable.ArrayBuffer
 
-class New(range: OffsetPointerRange, target: Expression, arguments: Vector[Expression]) extends Call(range, target, arguments) {
+class New(range: OffsetPointerRange, target: Expression, arguments: Vector[Expression]) extends CallBase(range, target, arguments) {
 
   override def evaluateClosure(context: Context, argumentValues: ArrayBuffer[Value], closure: ClosureLike): Option[ExpressionResult] = {
     // TODO, assign __proto__ field from closure.prototype
@@ -65,13 +65,13 @@ class DotAccess(val range: OffsetPointerRange, target: Expression, property: Nam
       if (context.configuration.mode == FindScope(property)) {
         return ScopeInformation(targetObject)
       }
+      context.lastDotAccessTarget = Some(targetObject)
       targetObject.members.get(property.name).foreach(memberValue =>
         property.addReference(context, memberValue))
       targetObject.getMember(property.name) match {
-        case Some(memberValue) => {
+        case Some(memberValue) =>
           property.addReference(context, memberValue)
           memberValue
-        }
         case None => if (context.configuration.allowUndefinedPropertyAccess) {
           new UndefinedValue()
         } else {

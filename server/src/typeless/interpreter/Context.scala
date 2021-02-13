@@ -1,7 +1,7 @@
 package typeless.interpreter
 
 import miksilo.editorParser.parsers.SourceElement
-import typeless.ast.{Call, Expression, MaxCallDepthReached, NameLike, StringValue}
+import typeless.ast.{Call, CallBase, Expression, MaxCallDepthReached, NameLike, StringValue}
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -42,7 +42,7 @@ case class RunConfiguration(file: String,
 
 }
 
-case class Frame(call: Call, closure: ClosureLike)
+case class Frame(call: CallBase, closure: ClosureLike)
 class Context(var configuration: RunConfiguration,
               callStack: mutable.ArrayBuffer[Frame],
               var functionCorrectness: Option[FunctionCorrectness],
@@ -51,11 +51,13 @@ class Context(var configuration: RunConfiguration,
 
   def currentFrame(): Frame = callStack.last
 
+  var lastDotAccessTarget: Option[ObjectValue] = None
+
   def this(configuration: RunConfiguration, scope: Scope) = {
     this(configuration, mutable.ArrayBuffer.empty, None, Set.empty, scope)
   }
 
-  def evaluateClosure(call: Call, closure: ClosureLike, argumentValues: collection.Seq[Value]): Option[ExpressionResult] = {
+  def evaluateClosure(call: CallBase, closure: ClosureLike, argumentValues: collection.Seq[Value]): Option[ExpressionResult] = {
 
     if (callStack.length > configuration.maxCallDepth) {
       return None
@@ -135,7 +137,7 @@ class Context(var configuration: RunConfiguration,
     result match {
       case value: ObjectValue => value
       case value: Value =>
-        TypeError(expression, "with fields", value)
+        TypeError(expression, "with properties", value)
       case e: ExceptionResult => e
     }
   }

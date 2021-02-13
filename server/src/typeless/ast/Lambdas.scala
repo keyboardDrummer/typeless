@@ -23,7 +23,7 @@ class Lambda(val range: OffsetPointerRange, val arguments: Vector[Argument], val
   }
 }
 
-class IncorrectNativeCall(file: String, exception: NativeCallFailed, call: Call, argumentValues: collection.Seq[Value])
+class IncorrectNativeCall(file: String, exception: NativeCallFailed, call: CallBase, argumentValues: collection.Seq[Value])
   extends UserExceptionResult {
   override def canBeModified: Boolean = false
 
@@ -38,7 +38,7 @@ class IncorrectNativeCall(file: String, exception: NativeCallFailed, call: Call,
 }
 
 // TODO remove file argument
-class CorrectCallGaveException(file: String, exception: UserExceptionResult, call: Call,
+class CorrectCallGaveException(file: String, exception: UserExceptionResult, call: CallBase,
                                closure: ClosureLike, argumentValues: collection.Seq[Value])
   extends UserExceptionResult {
 
@@ -54,7 +54,20 @@ class CorrectCallGaveException(file: String, exception: UserExceptionResult, cal
   override def canBeModified: Boolean = false
 }
 
-class Call(val range: OffsetPointerRange, target: Expression, arguments: Vector[Expression]) extends Expression {
+class Call(range: OffsetPointerRange, target: Expression, arguments: Vector[Expression]) extends CallBase(range, target, arguments) {
+
+  override def evaluate(context: Context): ExpressionResult = {
+    context.lastDotAccessTarget = None
+    super.evaluate(context)
+  }
+
+  override def evaluateClosure(context: Context, argumentValues: ArrayBuffer[Value], closure: ClosureLike): Option[ExpressionResult] = {
+    context.lastDotAccessTarget.foreach(target => context.setThis(target))
+    super.evaluateClosure(context, argumentValues, closure)
+  }
+}
+
+class CallBase(val range: OffsetPointerRange, target: Expression, arguments: Vector[Expression]) extends Expression {
 
   override def childElements: Seq[SourceElement] = {
     Seq(target) ++ arguments

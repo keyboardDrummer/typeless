@@ -11,8 +11,10 @@ class BooleanLiteral(val range: OffsetPointerRange, value: Boolean) extends Expr
   override def evaluate(context: Context): ExpressionResult = new BooleanValue(value)
 }
 
-class StringValue(value: String) extends PrimitiveValue[String](value) {
+class StringValue(val value: String) extends ObjectValue with PrimitiveValue[String] {
   override def represent(depth: Int = 1): String = value
+
+  members.put("length", new IntValue(value.length))
 }
 
 class StringLiteral(val range: OffsetPointerRange, value: String) extends Expression {
@@ -89,9 +91,14 @@ class WholeNumber(val range: OffsetPointerRange, int: Int) extends Expression {
 }
 
 class Modulo(val range: OffsetPointerRange, val left: Expression, val right: Expression) extends BinaryExpression {
-  override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult =
-    NotImplementedException(this)
+  override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = {
+    (leftValue, rightValue) match {
+      case (leftInt: IntValue, rightInt: IntValue) => new IntValue(leftInt.value % rightInt.value)
+      case _ => TypeError(this, "that supports %", leftValue)
+    }
+  }
 }
+
 class Subtraction(val range: OffsetPointerRange, val left: Expression, val right: Expression) extends BinaryExpression {
   override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = {
     (leftValue, rightValue) match {
