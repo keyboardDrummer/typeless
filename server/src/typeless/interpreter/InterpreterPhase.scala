@@ -2,6 +2,7 @@ package typeless.interpreter
 
 import miksilo.languageServer.core.language.{Compilation, Phase, SourcePathFromElement}
 import miksilo.languageServer.core.smarts.FileDiagnostic
+import typeless.ChainElement
 import typeless.ast.JavaScriptFile
 import typeless.server.JavaScriptCompilation
 
@@ -15,7 +16,7 @@ object InterpreterPhase {
 
     val uri = compilation.rootFile.get
     val javaScriptCompilation = compilation.asInstanceOf[JavaScriptCompilation]
-    val program = compilation.program.asInstanceOf[SourcePathFromElement].sourceElement.asInstanceOf[JavaScriptFile]
+    val program = compilation.program.asInstanceOf[ChainElement].sourceElement.asInstanceOf[JavaScriptFile]
     val defaultState = StandardLibrary.createState()
 
     val scan = new Scan()

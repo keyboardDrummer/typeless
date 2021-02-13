@@ -55,16 +55,16 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |}
         |""".stripMargin
 
-//    val (diagnostics, document) = openAndCheckDocument(server, program)
-//    assert(diagnostics.isEmpty)
-//
-//    val expectedPersonHover = Hover(Seq(new RawMarkedString("{ name: Remy, age: 32 }")),
-//      Some(HumanPosition(12, 10).span(6)))
-//    val personHover: Hover = hover(server, program, HumanPosition(12, 11)).get
-//    assertResult(expectedPersonHover)(personHover)
+    val (diagnostics, document) = openAndCheckDocument(server, program)
+    assert(diagnostics.isEmpty)
+
+    val expectedPersonHover = Hover(Seq(new RawMarkedString("{ name: Remy, age: 32 }")),
+      Some(HumanPosition(12, 10).span(6)))
+    val personHover: Hover = hover(server, program, HumanPosition(12, 11)).get
+    assertResult(expectedPersonHover)(personHover)
 
     val expectedNameHover = Hover(Seq(new RawMarkedString("Remy")),
-      Some(HumanPosition(12, 17).span(4)))
+      Some(HumanPosition(12, 10).span(11)))
     val nameHover: Hover = hover(server, program, HumanPosition(12, 17)).get
     assertResult(expectedNameHover)(nameHover)
   }

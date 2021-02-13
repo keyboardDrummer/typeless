@@ -5,8 +5,8 @@ import miksilo.editorParser.parsers.core.ParseText
 import miksilo.editorParser.parsers.editorParsers.TextEdit
 import miksilo.languageServer.core.language.{CompilationCache, SourcePathFromElement}
 import miksilo.lspprotocol.lsp._
-import typeless.JavaScriptLanguage
-import typeless.ast.NameLike
+import typeless.{ChainElement, JavaScriptLanguage}
+import typeless.ast.{Expression, NameLike}
 import typeless.interpreter.{ExpressionResult, FindScope, FindValue, ReturnInformationWithThrow, ScopeInformation, ScopeLike, Value}
 import typeless.miksilooverwrite.BaseMiksiloLanguageServer
 
@@ -63,7 +63,7 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
     val sourceElementOption = getSourceElement(text, FilePosition(parameters.textDocument.uri, parameters.position))
 
     sourceElementOption.fold(Seq.empty[FileRange])(element => {
-      val sourceElement = element.asInstanceOf[SourcePathFromElement].sourceElement
+      val sourceElement = element.asInstanceOf[ChainElement].sourceElement
       sourceElement match {
         case name: NameLike =>
           getCompilation.refs.fromReference.get(name).
@@ -82,7 +82,7 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
     val sourceElementOption = getSourceElement(text, FilePosition(parameters.textDocument.uri, parameters.position))
     val completions: Seq[CompletionItem] = sourceElementOption.fold(Iterable.empty[CompletionItem])(element => {
 
-      val sourceElement = element.asInstanceOf[SourcePathFromElement].sourceElement
+      val sourceElement = element.asInstanceOf[ChainElement].sourceElement
       val scopeOption = getSourceElementScope(sourceElement)
       scopeOption.fold(Iterable.empty[CompletionItem])(scope => {
         val memberNames = sourceElement match {
@@ -104,7 +104,7 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
     val sourceElementOption = getSourceElement(text, FilePosition(parameters.textDocument.uri, parameters.position))
 
     sourceElementOption.fold(Seq.empty[FileRange])(element => {
-      val sourceElement = element.asInstanceOf[SourcePathFromElement].sourceElement
+      val sourceElement = element.asInstanceOf[ChainElement].sourceElement
       sourceElement match {
         case name: NameLike =>
           val declaration = getCompilation.refs.fromReference.getOrElse(name, name)
@@ -162,12 +162,12 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
   override def hover(request: DocumentPosition): Option[Hover] = {
     val uri = request.textDocument.uri
     val text: ParseText = documentManager.getFileParseText(uri)
-    val sourceElementOption = getSourceElement(text, FilePosition(uri, request.position))
-    sourceElementOption.fold[Option[Hover]](None)(element => {
-      val resultOption = getSourceElementValue(element.asInstanceOf[SourcePathFromElement].sourceElement)
-      resultOption.map(result => {
-        Hover(Seq(new RawMarkedString(result.represent())), element.rangeOption.map(r => r.toSourceRange))
-      })
-    })
+    for {
+      sourceElement <- getSourceElement(text, FilePosition(uri, request.position))
+      expression <- sourceElement.asInstanceOf[ChainElement].ancestors.find(e => e.isInstanceOf[Expression])
+      value <- getSourceElementValue(expression)
+    } yield {
+      Hover(Seq(new RawMarkedString(value.represent())), expression.rangeOption.map(r => r.toSourceRange))
+    }
   }
 }
