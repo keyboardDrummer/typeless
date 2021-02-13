@@ -15,7 +15,7 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
   with CompletionProvider
   with ReferencesProvider
   with RenameProvider
-  // with HoverProvider
+  with HoverProvider
   // with DocumentSymbolProvider
 {
   def getSourceElementValue(element: SourceElement): Option[Value] = {
@@ -159,15 +159,15 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
   override def createCompilation(cache: CompilationCache, rootFile: Option[String]): JavaScriptCompilation =
     new JavaScriptCompilation(cache, rootFile)
 
-//  override def hover(request: DocumentPosition): Option[Hover] = {
-//    val uri = request.textDocument.uri
-//    val text: ParseText = documentManager.getFileParseText(uri)
-//    val sourceElementOption = getSourceElement(text, FilePosition(uri, request.position))
-//    sourceElementOption.fold[Option[Hover]](None)(element => {
-//      val resultOption = getSourceElementValue(element.asInstanceOf[SourcePathFromElement].sourceElement)
-//      resultOption.map(result => {
-//        Hover(Seq(new RawMarkedString(result.represent())), element.rangeOption.map(r => r.toSourceRange))
-//      })
-//    })
-//  }
+  override def hover(request: DocumentPosition): Option[Hover] = {
+    val uri = request.textDocument.uri
+    val text: ParseText = documentManager.getFileParseText(uri)
+    val sourceElementOption = getSourceElement(text, FilePosition(uri, request.position))
+    sourceElementOption.fold[Option[Hover]](None)(element => {
+      val resultOption = getSourceElementValue(element.asInstanceOf[SourcePathFromElement].sourceElement)
+      resultOption.map(result => {
+        Hover(Seq(new RawMarkedString(result.represent())), element.rangeOption.map(r => r.toSourceRange))
+      })
+    })
+  }
 }

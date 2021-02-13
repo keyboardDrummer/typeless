@@ -335,7 +335,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
     server.asInstanceOf[HoverProvider].hover(DocumentPosition(document, position))
   }
 
-  ignore("hover") {
+  test("hover") {
     val program =
       """const personTest = () => {
         |  const person = { name: "Remy", age: 32 };
