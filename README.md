@@ -41,7 +41,7 @@ interface IPerson {
   name: string
 }
 
-const isNameOfEvenLength = pipe((person: IPerson) => p.name, (str: string) => str.length, (x: number) => x % 2 == 0)
+const isNameOfEvenLength = pipe((person: IPerson) => person.name, (str: string) => str.length, (x: number) => x % 2 == 0)
 const isRemyEven = isNameOfEvenLength({ name: "Remy" })
 // Hovering over isRemyEven shows us that it's a boolean value.
 ```
