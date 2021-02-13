@@ -5,14 +5,15 @@ import miksilo.editorParser.parsers.editorParsers.OffsetPointerRange
 import miksilo.languageServer.core.language.FileElement
 import miksilo.lspprotocol.lsp.{Diagnostic, FileRange, RelatedInformation}
 import typeless.interpreter._
-import scala.collection.mutable
+
 import scala.collection.mutable.ArrayBuffer
 
 class Argument(val range: OffsetPointerRange, val name: String, varArgs: Boolean) extends FileElement with NameLike {
 
 }
 
-class Lambda(val range: OffsetPointerRange, val arguments: Vector[Argument], val body: Vector[Statement]) extends Expression {
+class Lambda(val range: OffsetPointerRange, val arguments: Vector[Argument], val body: Vector[Statement],
+             val nameOption: Option[String]) extends Expression {
   override def evaluate(context: Context): ExpressionResult = {
     new Closure(this, context.scope)
   }

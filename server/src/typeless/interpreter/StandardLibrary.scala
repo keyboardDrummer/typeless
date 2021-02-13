@@ -10,6 +10,10 @@ object NativeElement extends SourceElement {
   override def rangeOption: Option[OffsetPointerRange] = None
 }
 
+object FakeSource extends SourceElement {
+  override def rangeOption: Option[OffsetPointerRange] = None
+}
+
 class Assert extends ObjectValue with ClosureLike {
   members.put("strictEqual", AssertStrictEqual)
 
@@ -17,13 +21,16 @@ class Assert extends ObjectValue with ClosureLike {
     argumentValues.head match {
       case booleanValue: BooleanValue if booleanValue.value =>
         new UndefinedValue()
-      case _ => NativeCallFailed(Seq(new BooleanValue(true)))
+      case _ =>
+        val fakeBoolean = new BooleanValue(true)
+        fakeBoolean.createdAt = FakeSource
+        AssertEqualFailure(context.configuration.file, argumentValues.head, fakeBoolean)
     }
   }
 }
 
 object StandardLibrary {
-  def createState() = {
+  def createState(): Scope = {
     val result = new Scope()
     result.declare("assert", new Assert())
     result

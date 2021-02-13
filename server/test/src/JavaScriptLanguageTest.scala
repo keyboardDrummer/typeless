@@ -1,4 +1,4 @@
-import miksilo.editorParser.parsers.editorParsers.{Position, TextEdit}
+import miksilo.editorParser.parsers.editorParsers.{Position, SourceRange, TextEdit}
 import miksilo.languageServer.server.LanguageServerTest
 import miksilo.lspprotocol.lsp._
 import org.scalatest.funsuite.AnyFunSuite
@@ -38,7 +38,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
     assert(diagnostics.isEmpty)
   }
 
-  test("demo hover") {
+  test("demo hover and assert") {
     val program =
       """function getNameTest() {
         |  const person = new Person("Remy", 32);
@@ -51,12 +51,13 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |}
         |
         |function isPresenting(person) {
-        |  return person.name == "Remy";
+        |  return person.name == "Remi";
         |}
         |""".stripMargin
 
+    val diagnostic = Diagnostic(SourceRange(Position(11,9),Position(11,30)), Some(1), "Expression was 'false' while 'true' was expected")
     val (diagnostics, document) = openAndCheckDocument(server, program)
-    assert(diagnostics.isEmpty)
+    assertResult(Seq(diagnostic))(diagnostics)
 
     val expectedPersonHover = Hover(Seq(new RawMarkedString("{ name: Remy, age: 32 }")),
       Some(HumanPosition(12, 10).span(6)))

@@ -189,6 +189,8 @@ class Closure(val lambda: Lambda, val state: Scope) extends Value with ClosureLi
     })
     Statement.evaluateBody(newContext, lambda.body).toExpressionResult
   }
+
+  override def represent(depth: Int): String = lambda.nameOption.fold("anonymous function")(name => s"function $name")
 }
 
 
@@ -211,8 +213,10 @@ case class AssertEqualFailure(file: String, actual: Value, expected: Value) exte
 
   override def toDiagnostic: Diagnostic = {
     val message = s"Expression was '${actual.represent()}' while '${expected.represent()}' was expected"
-    val relatedInformation = RelatedInformation(FileRange(file, expected.createdAt.rangeOption.get.toSourceRange), expected.represent())
-    Diagnostic(actual.createdAt.rangeOption.get.toSourceRange, Some(1), message, relatedInformation = Seq(relatedInformation))
+    val expectedCreatedRangeOption = expected.createdAt.rangeOption
+    val relatedInformation = expectedCreatedRangeOption.fold(Seq.empty[RelatedInformation])(r =>
+      Seq(RelatedInformation(FileRange(file, r.toSourceRange), expected.represent())))
+    Diagnostic(actual.createdAt.rangeOption.get.toSourceRange, Some(1), message, relatedInformation = relatedInformation)
   }
 
   override def canBeModified: Boolean = false
