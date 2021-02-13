@@ -18,7 +18,27 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
     assert(diagnostics.isEmpty)
   }
 
-  test("demo2") {
+  test("demo code completion") {
+    val program =
+      """function getNameTest() {
+        |  const person = new Person("Remy", 32);
+        |  assert(isPresenting(person));
+        |}
+        |
+        |function Person(name, age) {
+        |  this.name = name;
+        |  this.age = age;
+        |}
+        |
+        |function isPresenting(person) {
+        |  return person. == "Remy";
+        |}
+        |""".stripMargin
+    val (diagnostics, document) = openAndCheckDocument(server, program)
+    assert(diagnostics.isEmpty)
+  }
+
+  test("demo hover") {
     val program =
       """function getNameTest() {
         |  const person = new Person("Remy", 32);
@@ -34,28 +54,19 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |  return person.name == "Remy";
         |}
         |""".stripMargin
-    val (diagnostics, document) = openAndCheckDocument(server, program)
-    assert(diagnostics.isEmpty)
-  }
 
-  test("demo") {
-    val program =
-      """function getNameTest() {
-        |  const person = new Person("Remy", 32);
-        |  assert.strictEqual(getName(person), "Remy");
-        |}
-        |
-        |function Person(name, age) {
-        |  this.name = name;
-        |  this.age = age;
-        |}
-        |
-        |function getName(person) {
-        |  return person.name;
-        |}
-        |""".stripMargin
-    val (diagnostics, document) = openAndCheckDocument(server, program)
-    assert(diagnostics.isEmpty)
+//    val (diagnostics, document) = openAndCheckDocument(server, program)
+//    assert(diagnostics.isEmpty)
+//
+//    val expectedPersonHover = Hover(Seq(new RawMarkedString("{ name: Remy, age: 32 }")),
+//      Some(HumanPosition(12, 10).span(6)))
+//    val personHover: Hover = hover(server, program, HumanPosition(12, 11)).get
+//    assertResult(expectedPersonHover)(personHover)
+
+    val expectedNameHover = Hover(Seq(new RawMarkedString("Remy")),
+      Some(HumanPosition(12, 17).span(4)))
+    val nameHover: Hover = hover(server, program, HumanPosition(12, 17)).get
+    assertResult(expectedNameHover)(nameHover)
   }
 
   test("native call failed diagnostics") {

@@ -77,15 +77,14 @@ class Call(val range: OffsetPointerRange, target: Expression, arguments: Vector[
     targetResult match {
       case closure: ClosureLike =>
 
-        if (context.callStack.length > context.configuration.maxCallDepth) {
+        val resultOption = context.evaluateClosure(closure, () => evaluateClosure(context, argumentValues, closure))
+        if (resultOption.isEmpty)
           return MaxCallDepthReached(this)
-        }
-        context.callStack.addOne(closure)
-        val result = evaluateClosure(context, argumentValues, closure)
-        context.callStack.remove(context.callStack.length - 1)
+
+        val result = resultOption.get
         val modifiedResult = result match {
           case native: NativeCallFailed =>
-            val currentClosureCanBeWrong = !context.isClosureCorrect(context.callStack.last)
+            val currentClosureCanBeWrong = !context.isCurrentContextCorrect
             if (currentClosureCanBeWrong) {
               new IncorrectNativeCall(context.configuration.file, native, this, argumentValues)
             } else {
@@ -93,7 +92,7 @@ class Call(val range: OffsetPointerRange, target: Expression, arguments: Vector[
             }
 
           case exception: UserExceptionResult =>
-            val currentClosureCanBeWrong = !context.isClosureCorrect(context.callStack.last)
+            val currentClosureCanBeWrong = !context.isCurrentContextCorrect
             if (exception.canBeModified && context.isClosureCorrect(closure) && currentClosureCanBeWrong) {
               new CorrectCallGaveException(context.configuration.file, exception, this, closure, argumentValues)
             }

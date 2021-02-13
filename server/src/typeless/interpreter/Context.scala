@@ -1,7 +1,7 @@
 package typeless.interpreter
 
 import miksilo.editorParser.parsers.SourceElement
-import typeless.ast.{Expression, NameLike, StringValue}
+import typeless.ast.{Expression, MaxCallDepthReached, NameLike, StringValue}
 
 import scala.collection.mutable
 
@@ -42,13 +42,24 @@ case class RunConfiguration(file: String,
 }
 
 class Context(var configuration: RunConfiguration,
-              val callStack: mutable.ArrayBuffer[ClosureLike],
+              callStack: mutable.ArrayBuffer[ClosureLike],
               var functionCorrectness: Option[FunctionCorrectness],
               var runningTests: Set[Closure],
               val scope: Scope) {
 
   def this(configuration: RunConfiguration, scope: Scope) = {
     this(configuration, mutable.ArrayBuffer.empty, None, Set.empty, scope)
+  }
+
+  def evaluateClosure(closureLike: ClosureLike, evaluate: () => ExpressionResult): Option[ExpressionResult] = {
+
+    if (callStack.length > configuration.maxCallDepth) {
+      return None
+    }
+    callStack.addOne(closureLike)
+    val result = evaluate()
+    callStack.remove(callStack.length - 1)
+    Some(result)
   }
 
   def withFreshCallStack(): Context = {
@@ -68,6 +79,13 @@ class Context(var configuration: RunConfiguration,
     result
   }
 
+  def isCurrentContextCorrect: Boolean = {
+    if (callStack.isEmpty)
+      false
+    else {
+      isClosureCorrect(callStack.last)
+    }
+  }
 
   def isClosureCorrect(closureLike: ClosureLike): Boolean = {
     closureLike match {
