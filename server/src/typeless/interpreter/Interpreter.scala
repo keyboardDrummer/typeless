@@ -4,7 +4,7 @@ import miksilo.editorParser.parsers.SourceElement
 import miksilo.languageServer.core.language.{Compilation, Phase, SourcePathFromElement}
 import miksilo.languageServer.core.smarts.FileDiagnostic
 import miksilo.lspprotocol.lsp.{Diagnostic, FileRange, RelatedInformation}
-import typeless.ast.{JavaScriptFile, Lambda, NameLike, Statement, StringValue}
+import typeless.ast.{Call, JavaScriptFile, Lambda, NameLike, Statement, StringValue}
 import typeless.server.JavaScriptCompilation
 
 import scala.collection.mutable
@@ -209,14 +209,21 @@ trait ClosureLike extends Value {
 }
 
 
-case class AssertEqualFailure(file: String, actual: Value, expected: Value) extends UserExceptionResult {
+case class AssertEqualFailure(file: String, call: Call, actual: Value, expected: Value) extends UserExceptionResult {
 
   override def toDiagnostic: Diagnostic = {
     val message = s"Expression was '${actual.represent()}' while '${expected.represent()}' was expected"
     val expectedCreatedRangeOption = expected.createdAt.rangeOption
-    val relatedInformation = expectedCreatedRangeOption.fold(Seq.empty[RelatedInformation])(r =>
-      Seq(RelatedInformation(FileRange(file, r.toSourceRange), expected.represent())))
-    Diagnostic(actual.createdAt.rangeOption.get.toSourceRange, Some(1), message, relatedInformation = relatedInformation)
+
+    val callInformation = Seq(RelatedInformation(FileRange(file, call.range.toSourceRange), "assertion"))
+
+    val expectedValueInformation = expectedCreatedRangeOption.fold(Seq.empty[RelatedInformation])(r =>
+      Seq(RelatedInformation(FileRange(file, r.toSourceRange), s"expected value: ${expected.represent()}")))
+
+    Diagnostic(
+      actual.createdAt.rangeOption.get.toSourceRange,
+      Some(1), message,
+      relatedInformation = callInformation ++ expectedValueInformation)
   }
 
   override def canBeModified: Boolean = false

@@ -55,8 +55,10 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |}
         |""".stripMargin
 
-    val diagnostic = Diagnostic(SourceRange(Position(11,9),Position(11,30)), Some(1), "Expression was 'false' while 'true' was expected")
     val (diagnostics, document) = openAndCheckDocument(server, program)
+    val assertInformation = RelatedInformation(FileRange(document.uri, SourceRange(Position(2,2),Position(2,30))), "assertion")
+    val diagnostic = Diagnostic(SourceRange(Position(11,9),Position(11,30)), Some(1), "Expression was 'false' while 'true' was expected",
+      relatedInformation = Seq(assertInformation))
     assertResult(Seq(diagnostic))(diagnostics)
 
     val expectedPersonHover = Hover(Seq(new RawMarkedString("{ name: Remy, age: 32 }")),
@@ -190,9 +192,11 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |""".stripMargin
 
     val (diagnostics, document) = openAndCheckDocument(server, program)
-    val related = RelatedInformation(FileRange(document.uri, HumanPosition(3, 33).span(1)), "9")
+    val related = Seq(
+      RelatedInformation(FileRange(document.uri, SourceRange(Position(2,2),Position(2,34))), "assertion"),
+      RelatedInformation(FileRange(document.uri, HumanPosition(3, 33).span(1)), "expected value: 9"))
     val expected = Seq(Diagnostic(HumanPosition(7, 10).span(5), Some(1),
-      "Expression was '6' while '9' was expected", relatedInformation = Seq(related)))
+      "Expression was '6' while '9' was expected", relatedInformation = related))
     assertResult(expected)(diagnostics)
   }
 
@@ -207,11 +211,12 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |}
         |""".stripMargin
 
-
     val (diagnostics, document) = openAndCheckDocument(server, program)
-    val related = RelatedInformation(FileRange(document.uri, HumanPosition(2, 49).span(6)), "Remy")
+    val related = Seq(
+      RelatedInformation(FileRange(document.uri, SourceRange(Position(1,2),Position(1,55))), "assertion"),
+      RelatedInformation(FileRange(document.uri, HumanPosition(2, 49).span(6)), "expected value: Remy"))
     val expected = Seq(Diagnostic(HumanPosition(6, 15).span(7), Some(1),
-      "Expression was 'Elise' while 'Remy' was expected", relatedInformation = Seq(related)))
+      "Expression was 'Elise' while 'Remy' was expected", relatedInformation = related))
     assertResult(expected)(diagnostics)
   }
 

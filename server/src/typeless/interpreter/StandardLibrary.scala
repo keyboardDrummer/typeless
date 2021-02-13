@@ -24,7 +24,7 @@ class Assert extends ObjectValue with ClosureLike {
       case _ =>
         val fakeBoolean = new BooleanValue(true)
         fakeBoolean.createdAt = FakeSource
-        AssertEqualFailure(context.configuration.file, argumentValues.head, fakeBoolean)
+        AssertEqualFailure(context.configuration.file, context.currentFrame().call, argumentValues.head, fakeBoolean)
     }
   }
 }
@@ -51,7 +51,7 @@ object AssertStrictEqual extends ClosureLike {
     val actual = argumentValues(0)
     val expected = argumentValues(1)
     if (!Value.strictEqual(actual, expected)) {
-      return AssertEqualFailure(context.configuration.file, actual, expected)
+      return AssertEqualFailure(context.configuration.file, context.currentFrame().call, actual, expected)
     }
     new UndefinedValue()
   }

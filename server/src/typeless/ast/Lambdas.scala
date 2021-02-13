@@ -78,7 +78,7 @@ class Call(val range: OffsetPointerRange, target: Expression, arguments: Vector[
     targetResult match {
       case closure: ClosureLike =>
 
-        val resultOption = context.evaluateClosure(closure, () => evaluateClosure(context, argumentValues, closure))
+        val resultOption = context.evaluateClosure(this, closure, () => evaluateClosure(context, argumentValues, closure))
         if (resultOption.isEmpty)
           return MaxCallDepthReached(this)
 

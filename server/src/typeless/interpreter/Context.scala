@@ -1,7 +1,7 @@
 package typeless.interpreter
 
 import miksilo.editorParser.parsers.SourceElement
-import typeless.ast.{Expression, MaxCallDepthReached, NameLike, StringValue}
+import typeless.ast.{Call, Expression, MaxCallDepthReached, NameLike, StringValue}
 
 import scala.collection.mutable
 
@@ -41,22 +41,25 @@ case class RunConfiguration(file: String,
 
 }
 
+case class Frame(call: Call, closure: ClosureLike)
 class Context(var configuration: RunConfiguration,
-              callStack: mutable.ArrayBuffer[ClosureLike],
+              callStack: mutable.ArrayBuffer[Frame],
               var functionCorrectness: Option[FunctionCorrectness],
               var runningTests: Set[Closure],
               val scope: Scope) {
+
+  def currentFrame(): Frame = callStack.last
 
   def this(configuration: RunConfiguration, scope: Scope) = {
     this(configuration, mutable.ArrayBuffer.empty, None, Set.empty, scope)
   }
 
-  def evaluateClosure(closureLike: ClosureLike, evaluate: () => ExpressionResult): Option[ExpressionResult] = {
+  def evaluateClosure(call: Call, closureLike: ClosureLike, evaluate: () => ExpressionResult): Option[ExpressionResult] = {
 
     if (callStack.length > configuration.maxCallDepth) {
       return None
     }
-    callStack.addOne(closureLike)
+    callStack.addOne(Frame(call, closureLike))
     val result = evaluate()
     callStack.remove(callStack.length - 1)
     Some(result)
@@ -72,9 +75,9 @@ class Context(var configuration: RunConfiguration,
 
   def runTest(test: Closure): ExpressionResult = {
     runningTests += test
-    callStack.addOne(test)
+    //callStack.addOne(test)
     val result = test.evaluate(this, Seq.empty)
-    callStack.remove(callStack.length - 1)
+    //callStack.remove(callStack.length - 1)
     runningTests -= test
     result
   }
@@ -83,7 +86,7 @@ class Context(var configuration: RunConfiguration,
     if (callStack.isEmpty)
       false
     else {
-      isClosureCorrect(callStack.last)
+      isClosureCorrect(callStack.last.closure)
     }
   }
 
