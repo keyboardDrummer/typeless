@@ -18,13 +18,17 @@ object FakeSource extends SourceElement {
 class Assert extends ObjectValue with ClosureLike {
   members.put("strictEqual", AssertStrictEqual)
 
+  val fakeBoolean = new BooleanValue(true)
+  fakeBoolean.createdAt = FakeSource
+
   override def evaluate(context: Context, argumentValues: collection.Seq[Value]): ExpressionResult = {
+    if (argumentValues.isEmpty) {
+      return NativeCallFailed(Seq(fakeBoolean))
+    }
     argumentValues.head match {
       case booleanValue: BooleanValue if booleanValue.value =>
         new UndefinedValue()
       case _ =>
-        val fakeBoolean = new BooleanValue(true)
-        fakeBoolean.createdAt = FakeSource
         AssertEqualFailure(context.configuration.file, context.currentFrame().call, argumentValues.head, fakeBoolean)
     }
   }

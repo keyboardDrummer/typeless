@@ -16,6 +16,7 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
   with ReferencesProvider
   with RenameProvider
   with HoverProvider
+  with TypeDefinitionProvider
   // with DocumentSymbolProvider
 {
   def getSourceElementValue(element: SourceElement): Option[Value] = {
@@ -73,7 +74,7 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
     })
   }
 
-  override def getOptions: CompletionOptions = CompletionOptions(resolveProvider = false, Seq.empty)
+  override def getOptions: CompletionOptions = CompletionOptions(resolveProvider = false, Seq("."))
 
   override def complete(parameters: DocumentPosition): CompletionList = {
     logger.debug("Went into complete")
@@ -90,7 +91,7 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
           case _ => scope.memberNames
         }
         memberNames.map(member => {
-          CompletionItem(member, detail = Some(scope.getValue(member).represent()))
+          CompletionItem(member, detail = Some("Example value: " + scope.getValue(member).represent()))
         })
       })
     }).toSeq
@@ -159,15 +160,31 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
   override def createCompilation(cache: CompilationCache, rootFile: Option[String]): JavaScriptCompilation =
     new JavaScriptCompilation(cache, rootFile)
 
+
+
   override def hover(request: DocumentPosition): Option[Hover] = {
-    val uri = request.textDocument.uri
+    valueFromPosition(request).map(t => {
+      val markedString = RawMarkedString("javascript", s"${t._2.represent()}")
+      Hover(Seq(markedString), t._1.rangeOption.map(r => r.toSourceRange))
+    })
+  }
+
+  def valueFromPosition(parameters: DocumentPosition): Option[(SourceElement, Value)] = {
+    val uri = parameters.textDocument.uri
     val text: ParseText = documentManager.getFileParseText(uri)
     for {
-      sourceElement <- getSourceElement(text, FilePosition(uri, request.position))
+      sourceElement <- getSourceElement(text, FilePosition(uri, parameters.position))
       expression <- sourceElement.asInstanceOf[ChainElement].ancestors.find(e => e.isInstanceOf[Expression])
       value <- getSourceElementValue(expression)
     } yield {
-      Hover(Seq(new RawMarkedString(value.represent())), expression.rangeOption.map(r => r.toSourceRange))
+      (expression, value)
     }
+  }
+
+  override def gotoTypeDefinition(parameters: DocumentPosition): Seq[FileRange] = {
+    val uri = parameters.textDocument.uri
+
+    valueFromPosition(parameters).
+      map(value => new FileRange(uri, value._2.createdAt.rangeOption.get.toSourceRange)).toSeq
   }
 }

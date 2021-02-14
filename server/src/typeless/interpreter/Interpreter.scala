@@ -1,14 +1,11 @@
 package typeless.interpreter
 
 import miksilo.editorParser.parsers.SourceElement
-import miksilo.languageServer.core.language.{Compilation, Phase, SourcePathFromElement}
-import miksilo.languageServer.core.smarts.FileDiagnostic
+import miksilo.editorParser.parsers.core.TextPointer
 import miksilo.lspprotocol.lsp.{Diagnostic, FileRange, RelatedInformation}
-import typeless.ast.{Call, CallBase, IncorrectNativeCall, JavaScriptFile, Lambda, NameLike, Statement, StringValue}
-import typeless.server.JavaScriptCompilation
+import typeless.ast.{CallBase, Lambda, NameLike, Statement}
 
 import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
 
 trait StatementResult {
   def toExpressionResult: ExpressionResult
@@ -139,7 +136,7 @@ trait Value extends ExpressionResult {
   }
 
   var definedAt: Option[NameLike] = None
-  var createdAt: SourceElement = null
+  var createdAt: SourceElement = _
   var documentation: Option[String] = None
 
   def represent(depth: Int = 1): String = "some value"
@@ -202,22 +199,45 @@ class Closure(val lambda: Lambda, val state: Scope) extends Value with ClosureLi
     val varArgs = lambda.arguments.lastOption.fold(false)(a => a.varArgs)
     val correctArgumentValues = if (varArgs) {
       val (regular, elements) = argumentValues.splitAt(lambda.arguments.size - 1)
-      regular ++ Seq(new ArrayValue(elements))
+      if (elements.nonEmpty) {
+        regular ++ Seq(new ArrayValue(elements))
+      } else {
+        regular
+      }
     } else {
       argumentValues
     }
+    lambda.documentationOption.foreach(documentation => {
+      val index: Map[String, Int] = lambda.arguments.map(a => a.name).zipWithIndex.toMap
+      documentation.parameters.foreach(t => index.get(t._1).foreach(parameterIndex => {
+        if (argumentValues.length > parameterIndex) {
+          argumentValues(parameterIndex).documentation = Some(t._2)
+        }
+      }))
+    })
 
     val newContext = context.withScope(state.nest())
     lambda.arguments.zip(correctArgumentValues).foreach(t => {
       newContext.declareWith(t._1, t._1.name, t._2)
     })
-    Statement.evaluateBody(newContext, lambda.body).toExpressionResult
+    val result = Statement.evaluateBody(newContext, lambda.body).toExpressionResult
+    result match {
+      case value: Value =>
+        lambda.documentationOption.
+          flatMap(documentation => documentation.returnValue).foreach(returnDocumentation => {
+            value.documentation = Some(returnDocumentation)
+          })
+      case _ =>
+    }
+    result
   }
 
-  override def represent(depth: Int): String = lambda.nameOption.fold("anonymous function")(name => s"function $name")
+  override def represent(depth: Int): String = {
+    val start = lambda.range.from.asInstanceOf[TextPointer]
+    val end = lambda.range.until.asInstanceOf[TextPointer]
+    start.printRange(end)
+  }
 }
-
-
 
 
 class BooleanValue(val value: Boolean) extends PrimitiveValue[Boolean] {

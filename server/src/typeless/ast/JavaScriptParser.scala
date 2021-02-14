@@ -27,8 +27,9 @@ object JavaScriptParser extends CommonStringReaderParser
   val numberLiteral = wholeNumber.withSourceRange((range, number) => new WholeNumber(range, Integer.parseInt(number)))
 
   val keywords = Set("if", "else", "this", "true", "false", "function", "new", "const", "return")
-  val variableExpression: Parser[VariableReference] = parseIdentifier.
-    filter(i => !keywords.contains(i), s => s"$s is a keyword").
+  val validIdentifier = parseIdentifier.
+    filter(i => !keywords.contains(i), s => s"$s is a keyword")
+  val variableExpression: Parser[VariableReference] = validIdentifier.
     withSourceRange((range, name) => new VariableReference(range, name))
   val thisParser: Parser[ThisReference] = ("this": Parser[String]).withSourceRange((range, _) => new ThisReference(range))
 
@@ -45,7 +46,7 @@ object JavaScriptParser extends CommonStringReaderParser
   val parenthesis: Parser[Expression] = "(" ~> expression ~< ")"
   val expression21: Parser[Expression] = parenthesis | nonAssociatedExpression
 
-  val name = (parseIdentifier | Fallback("", "name")).withSourceRange((range, name) => new Name(range, name))
+  val name = (validIdentifier | Fallback("", "name")).withSourceRange((range, name) => new Name(range, name))
   val bracketAccess: Parser[BracketAccess] = (expression20 ~< "[" ~ expression ~< "]").
     withSourceRange((range, t) => new BracketAccess(range, t._1, t._2))
   val dotAccess: Parser[DotAccess] = (expression20 ~< "." ~ name).
@@ -77,13 +78,13 @@ object JavaScriptParser extends CommonStringReaderParser
     withSourceRange((range, t) => new Assignment(range, t._1, t._2))
   lazy val expression3: Parser[Expression] = new Lazy(assignment | expression11)
 
-  val argument: Parser[Argument] = ("...".option ~ parseIdentifier).
+  val argument: Parser[Argument] = ("...".option ~ validIdentifier).
     withSourceRange((range, name) => new Argument(range, name._2, name._1.nonEmpty))
   val arguments: Parser[Vector[Argument]] = "(" ~> argument.manySeparated(",", "argument") ~< ")"
   lazy val lambdaBody = body | expression.map(expr => Vector(new ReturnStatement(expr.range, expr)))
   val lambdaArguments: Parser[Vector[Argument]] = arguments | argument.map(a => Vector(a))
   lazy val lambda: Parser[Lambda] = (lambdaArguments ~< "=>" ~ lambdaBody).
-    withSourceRange((range, t) => new Lambda(range, t._1, t._2, None))
+    withSourceRange((range, t) => new Lambda(range, t._1, t._2, None, None))
   val expression0: Parser[Expression] = lambda | expression3
 
   lazy val expression: Parser[Expression] = new Lazy(expression0)
@@ -92,7 +93,7 @@ object JavaScriptParser extends CommonStringReaderParser
 
   val statementEnd = ";" | "\n"
   val functionDeclaration = ("function" ~> name ~ arguments ~ body).
-    withSourceRange((range, t) => new Declaration(range, t._1._1, new Lambda(range, t._1._2, t._2, Some(t._1._1.name))))
+    withSourceRange((range, t) => new Declaration(range, t._1._1, new Lambda(range, t._1._2, t._2, Some(t._1._1.name), None)))
 
   val declaration: Parser[Declaration] = ("const" ~> name ~< "=" ~ expression ~< statementEnd).
     withSourceRange((range, t) => new Declaration(range, t._1, t._2))

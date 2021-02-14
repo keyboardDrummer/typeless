@@ -11,6 +11,7 @@ class New(range: OffsetPointerRange, target: Expression, arguments: Vector[Expre
   override def evaluateClosure(context: Context, argumentValues: ArrayBuffer[Value], closure: ClosureLike): Option[ExpressionResult] = {
     // TODO, assign __proto__ field from closure.prototype
     val newObj = new ObjectValue()
+    newObj.createdAt = this
     context.setThis(newObj)
     super.evaluateClosure(context, argumentValues, closure).map {
       case _: UndefinedValue => newObj

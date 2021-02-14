@@ -12,8 +12,10 @@ class Argument(val range: OffsetPointerRange, val name: String, val varArgs: Boo
 
 }
 
+case class FunctionDocumentation(description: String, parameters: Map[String, String], returnValue: Option[String])
+
 class Lambda(val range: OffsetPointerRange, val arguments: Vector[Argument], val body: Vector[Statement],
-             val nameOption: Option[String]) extends Expression {
+             val nameOption: Option[String], val documentationOption: Option[FunctionDocumentation]) extends Expression {
   override def evaluate(context: Context): ExpressionResult = {
     new Closure(this, context.scope)
   }
@@ -35,6 +37,8 @@ class IncorrectNativeCall(file: String, exception: NativeCallFailed, call: CallB
     val related = argumentValues.map(value => value.toRelatedInformation(file))
     Diagnostic(call.rangeOption.get.toSourceRange, Some(1), message, relatedInformation = related.toSeq)
   }
+
+
 }
 
 // TODO remove file argument

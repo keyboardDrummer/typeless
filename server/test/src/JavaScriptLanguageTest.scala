@@ -51,12 +51,12 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
       relatedInformation = Seq(assertInformation))
     assertResult(Seq(diagnostic))(diagnostics)
 
-    val expectedPersonHover = Hover(Seq(new RawMarkedString("{ name: Remy, age: 32 }")),
+    val expectedPersonHover = Hover(Seq(RawMarkedString("javascript", "{ name: Remy, age: 32 }")),
       Some(HumanPosition(12, 10).span(6)))
     val personHover: Hover = hover(server, program, HumanPosition(12, 11)).get
     assertResult(expectedPersonHover)(personHover)
 
-    val expectedNameHover = Hover(Seq(new RawMarkedString("Remy")),
+    val expectedNameHover = Hover(Seq(RawMarkedString("javascript", "Remy")),
       Some(HumanPosition(12, 10).span(11)))
     val nameHover: Hover = hover(server, program, HumanPosition(12, 17)).get
     assertResult(expectedNameHover)(nameHover)
@@ -112,7 +112,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |  return n.foo;
         |}
         |""".stripMargin
-    val expected = Seq(Diagnostic(HumanPosition(6, 10).span(1), Some(1), "Expected value with fields but got '3'"))
+    val expected = Seq(Diagnostic(HumanPosition(6, 10).span(1), Some(1), "Expected value with properties but got '3'"))
     val diagnostics = getDiagnostics(server, program)
     assertResult(expected)(diagnostics)
   }
@@ -342,7 +342,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |  person;
         |};
         |""".stripMargin
-    val expected = Hover(Seq(new RawMarkedString("{ name: Remy, age: 32 }")),
+    val expected = Hover(Seq(RawMarkedString("javascript", "{ name: Remy, age: 32 }")),
       Some(HumanPosition(3, 3).span(6)))
     val result: Hover = hover(server, program, HumanPosition(3, 5)).get
     assertResult(expected)(result)
