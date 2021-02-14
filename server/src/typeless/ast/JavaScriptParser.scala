@@ -59,9 +59,12 @@ object JavaScriptParser extends CommonStringReaderParser
     withSourceRange((range, t) => new Call(range, t._1, t._2))
   lazy val expression20: Parser[Expression] = new Lazy(newParser | callExpression | dotAccess | bracketAccess | expression21)
 
+  val negateParser = ("!" ~> expression17).withSourceRange((range, expr) => new Negate(range, expr))
+  lazy val expression17: Parser[Expression] = new Lazy(negateParser | expression20)
+
   val multiplication = (expression15 ~< "*" ~ expression15).withSourceRange((range, t) => new Multiplication(range, t._1, t._2))
   val modulo = (expression15 ~< "%" ~ expression15).withSourceRange((range, t) => new Modulo(range, t._1, t._2))
-  lazy val expression15: Parser[Expression] = new Lazy(multiplication | modulo | expression20)
+  lazy val expression15: Parser[Expression] = new Lazy(multiplication | modulo | expression17)
 
   val addition = (expression14 ~< "+" ~ expression14).withSourceRange((range, t) => new Addition(range, t._1, t._2))
   val subtraction = (expression14 ~< "-" ~ expression14).withSourceRange((range, t) => new Subtraction(range, t._1, t._2))

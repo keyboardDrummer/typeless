@@ -60,7 +60,7 @@ case class ReferenceError(element: SourceElement, name: String)
 }
 case class TypeError(element: SourceElement, expected: String, value: Value)
   extends SimpleExceptionResult with CatchableExceptionResult {
-  override def message: String = s"Expected value $expected but got '${value.represent()}'"
+  override def message: String = s"Expected value $expected but got ${value.represent()}"
 }
 
 trait PrimitiveValue[T] extends Value {
@@ -257,7 +257,7 @@ trait ClosureLike extends Value {
 case class AssertEqualFailure(file: String, call: CallBase, actual: Value, expected: Value) extends UserExceptionResult {
 
   override def toDiagnostic: Diagnostic = {
-    val message = s"Expression was '${actual.represent()}' while '${expected.represent()}' was expected"
+    val message = s"Expression was ${actual.represent()} while ${expected.represent()} was expected"
     val expectedCreatedRangeOption = expected.createdAt.rangeOption
 
     val callInformation = Seq(RelatedInformation(FileRange(file, call.range.toSourceRange), "assertion"))

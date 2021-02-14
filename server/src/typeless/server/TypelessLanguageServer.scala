@@ -91,7 +91,7 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
           case _ => scope.memberNames
         }
         memberNames.map(member => {
-          CompletionItem(member, detail = Some("Example value: " + scope.getValue(member).represent()))
+          CompletionItem(member, detail = Some(scope.getValue(member).represent()))
         })
       })
     }).toSeq

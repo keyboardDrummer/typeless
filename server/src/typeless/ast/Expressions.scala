@@ -7,12 +7,22 @@ import typeless.interpreter.{BooleanValue, Context, ExceptionResult, ExpressionR
 
 import scala.collection.immutable.ListMap
 
+class Negate(val range: OffsetPointerRange, value: Expression) extends Expression {
+  override def evaluate(context: Context): ExpressionResult = {
+    context.evaluateExpression(value) match {
+      case boolean: BooleanValue => new BooleanValue(!boolean.value)
+      case value: Value => TypeError(this, "that is true or false", value)
+      case e: ExceptionResult => e
+    }
+  }
+}
+
 class BooleanLiteral(val range: OffsetPointerRange, value: Boolean) extends Expression {
   override def evaluate(context: Context): ExpressionResult = new BooleanValue(value)
 }
 
 class StringValue(val value: String) extends ObjectValue with PrimitiveValue[String] {
-  override def represent(depth: Int = 1): String = value
+  override def represent(depth: Int = 1): String = '"' + value + '"'
 
   members.put("length", new IntValue(value.length))
 }

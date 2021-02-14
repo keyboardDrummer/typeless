@@ -2,7 +2,6 @@ package typeless.interpreter
 
 import miksilo.editorParser.parsers.SourceElement
 import miksilo.editorParser.parsers.editorParsers.OffsetPointerRange
-import miksilo.lspprotocol.lsp.Diagnostic
 
 // TODO fix calls of this function
 case class NativeCallFailed(expectedValues: Seq[Value]) extends ExceptionResult

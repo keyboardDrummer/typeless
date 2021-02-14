@@ -47,16 +47,16 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
 
     val (diagnostics, document) = openAndCheckDocument(server, program)
     val assertInformation = RelatedInformation(FileRange(document.uri, SourceRange(Position(2,2),Position(2,30))), "assertion")
-    val diagnostic = Diagnostic(SourceRange(Position(11,9),Position(11,30)), Some(1), "Expression was 'false' while 'true' was expected",
+    val diagnostic = Diagnostic(SourceRange(Position(11,9),Position(11,30)), Some(1), "Expression was false while true was expected",
       relatedInformation = Seq(assertInformation))
     assertResult(Seq(diagnostic))(diagnostics)
 
-    val expectedPersonHover = Hover(Seq(RawMarkedString("javascript", "{ name: Remy, age: 32 }")),
+    val expectedPersonHover = Hover(Seq(RawMarkedString("javascript", "{ name: \"Remy\", age: 32 }")),
       Some(HumanPosition(12, 10).span(6)))
     val personHover: Hover = hover(server, program, HumanPosition(12, 11)).get
     assertResult(expectedPersonHover)(personHover)
 
-    val expectedNameHover = Hover(Seq(RawMarkedString("javascript", "Remy")),
+    val expectedNameHover = Hover(Seq(RawMarkedString("javascript", "\"Remy\"")),
       Some(HumanPosition(12, 10).span(11)))
     val nameHover: Hover = hover(server, program, HumanPosition(12, 17)).get
     assertResult(expectedNameHover)(nameHover)
@@ -112,7 +112,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |  return n.foo;
         |}
         |""".stripMargin
-    val expected = Seq(Diagnostic(HumanPosition(6, 10).span(1), Some(1), "Expected value with properties but got '3'"))
+    val expected = Seq(Diagnostic(HumanPosition(6, 10).span(1), Some(1), "Expected value with properties but got 3"))
     val diagnostics = getDiagnostics(server, program)
     assertResult(expected)(diagnostics)
   }
@@ -127,7 +127,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |  return n.bar;
         |};
         |""".stripMargin
-    val expected = Seq(Diagnostic(HumanPosition(6, 10).span(5), Some(1), "The member 'bar' is not available on value '{ foo: Remy }'"))
+    val expected = Seq(Diagnostic(HumanPosition(6, 10).span(5), Some(1), "The member 'bar' is not available on value '{ foo: \"Remy\" }'"))
     val diagnostics = getDiagnostics(server, program)
     assertResult(expected)(diagnostics)
   }
@@ -153,9 +153,9 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
 
     val (diagnostics, document) = openAndCheckDocument(server, program)
     val relatedInformation = RelatedInformation(FileRange(document.uri, HumanPosition(13,20).span(3)),
-      "Expected value that supports subtraction but got 'hello'")
+      "Expected value that supports subtraction but got \"hello\"")
     val expected = Seq(Diagnostic(HumanPosition(2, 3).span(18), Some(1),
-      "Function call failed with arguments 'hello'", relatedInformation = Seq(relatedInformation)))
+      "Function call failed with arguments (\"hello\")", relatedInformation = Seq(relatedInformation)))
     assertResult(expected)(diagnostics)
 
     val result2 = server.gotoDefinition(DocumentPosition(document, HumanPosition(7, 12))).head.range
@@ -179,7 +179,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
       RelatedInformation(FileRange(document.uri, SourceRange(Position(2,2),Position(2,34))), "assertion"),
       RelatedInformation(FileRange(document.uri, HumanPosition(3, 33).span(1)), "expected value: 9"))
     val expected = Seq(Diagnostic(HumanPosition(7, 10).span(5), Some(1),
-      "Expression was '6' while '9' was expected", relatedInformation = related))
+      "Expression was 6 while 9 was expected", relatedInformation = related))
     assertResult(expected)(diagnostics)
   }
 
@@ -197,9 +197,9 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
     val (diagnostics, document) = openAndCheckDocument(server, program)
     val related = Seq(
       RelatedInformation(FileRange(document.uri, SourceRange(Position(1,2),Position(1,55))), "assertion"),
-      RelatedInformation(FileRange(document.uri, HumanPosition(2, 49).span(6)), "expected value: Remy"))
+      RelatedInformation(FileRange(document.uri, HumanPosition(2, 49).span(6)), "expected value: \"Remy\""))
     val expected = Seq(Diagnostic(HumanPosition(6, 15).span(7), Some(1),
-      "Expression was 'Elise' while 'Remy' was expected", relatedInformation = related))
+      "Expression was \"Elise\" while \"Remy\" was expected", relatedInformation = related))
     assertResult(expected)(diagnostics)
   }
 
@@ -259,8 +259,8 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |
         |};
         |""".stripMargin
-    val globalItem = CompletionItem("abcGlobal", detail = Some("hello"))
-    val localItem = CompletionItem("abcLocal", detail = Some("goodbye"))
+    val globalItem = CompletionItem("abcGlobal", detail = Some("\"hello\""))
+    val localItem = CompletionItem("abcLocal", detail = Some("\"goodbye\""))
     assertResult(Seq(globalItem))(complete(server, program, HumanPosition(3, 6)).items)
 
     assertResult(Seq(localItem, globalItem))(complete(server, program, HumanPosition(6, 6)).items)
@@ -285,7 +285,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
     // TODO Assert that there is only a parsing diagnostic but not another one
     // assert(getDiagnostics(server, program).isEmpty)
 
-    val expected = Seq(CompletionItem("name", detail = Some("Remy")), CompletionItem("age", detail = Some("32")))
+    val expected = Seq(CompletionItem("name", detail = Some("\"Remy\"")), CompletionItem("age", detail = Some("32")))
     val definitions = complete(server, program, HumanPosition(7, 17)).items
     assertResult(expected)(definitions)
   }
@@ -342,7 +342,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |  person;
         |};
         |""".stripMargin
-    val expected = Hover(Seq(RawMarkedString("javascript", "{ name: Remy, age: 32 }")),
+    val expected = Hover(Seq(RawMarkedString("javascript", "{ name: \"Remy\", age: 32 }")),
       Some(HumanPosition(3, 3).span(6)))
     val result: Hover = hover(server, program, HumanPosition(3, 5)).get
     assertResult(expected)(result)
@@ -384,7 +384,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
 
     val (diagnostics, document) = openAndCheckDocument(server, program)
     val related = RelatedInformation(FileRange(document.uri, HumanPosition(11, 5).span(16)), "Call takes too long for a test")
-    val expected = Seq(Diagnostic(HumanPosition(2, 3).span(13), Some(1), "Function call failed with arguments 'true'", relatedInformation = Seq(related)))
+    val expected = Seq(Diagnostic(HumanPosition(2, 3).span(13), Some(1), "Function call failed with arguments (true)", relatedInformation = Seq(related)))
     assertResult(expected)(diagnostics)
   }
 }

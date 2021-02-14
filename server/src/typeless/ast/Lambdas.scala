@@ -47,8 +47,8 @@ class CorrectCallGaveException(file: String, exception: UserExceptionResult, cal
   extends UserExceptionResult {
 
   override def toDiagnostic: Diagnostic = {
-    val values = argumentValues.map(a => a.represent()).reduce((left, right) => left + ", " + right)
-    val message = s"Function call failed with arguments '$values'"
+    val values = argumentValues.map(a => a.represent()).mkString(", ")
+    val message = s"Function call failed with arguments ($values)"
     val innerDiagnostic = exception.toDiagnostic
     val relatedInfo = RelatedInformation(FileRange(file, innerDiagnostic.range), innerDiagnostic.message)
     Diagnostic(call.rangeOption.get.toSourceRange, Some(1), message, relatedInformation = Seq(relatedInfo))
