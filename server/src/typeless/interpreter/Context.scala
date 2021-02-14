@@ -1,7 +1,7 @@
 package typeless.interpreter
 
 import miksilo.editorParser.parsers.SourceElement
-import typeless.ast.{CallBase, Expression, MaxCallDepthReached, NameLike, StringValue}
+import typeless.ast.{CallBase, Expression, Lambda, MaxCallDepthReached, NameLike, StringValue}
 
 trait RunMode {
   def skipErrors: Boolean
@@ -87,14 +87,18 @@ class Context(var configuration: RunConfiguration,
     if (callStack.isEmpty)
       false
     else {
-      isClosureTrusted(callStack.last.closure)
+      isClosureTrusted(callStack.head.closure)
     }
   }
 
   def isClosureTrusted(closureLike: ClosureLike): Boolean = {
     closureLike match {
       case closure: Closure =>
-        functionCorrectness.fold(true)(c => c.isClosureCorrect(this, closure))
+        // TODO traverse to highest ancestor lambda.
+        val lambda = closure.lambda
+        functionCorrectness.fold(true)(c => {
+          c.isLambdaCorrect(this, lambda)
+        })
       case _ => true
     }
   }

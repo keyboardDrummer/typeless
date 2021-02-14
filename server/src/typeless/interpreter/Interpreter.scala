@@ -26,7 +26,6 @@ trait ExpressionResult {
 trait UserExceptionResult extends ExceptionResult {
   def callStack: List[Frame]
 
-  // TODO remove field
   def canBeModified: Boolean = true
 
   def toDiagnostic: Diagnostic

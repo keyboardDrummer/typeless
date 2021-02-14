@@ -104,7 +104,8 @@ class CallBase(val range: OffsetPointerRange, target: Expression, arguments: Vec
 
           case exception: UserExceptionResult =>
             val exceptionInTrustedContext = context.isClosureTrusted(exception.callStack.head.closure)
-            if (exception.canBeModified && exceptionInTrustedContext && !context.isCurrentContextTrusted) {
+            val isCurrentContextUntrusted = context.callStack.isEmpty || !context.isClosureTrusted(context.callStack.head.closure)
+            if (exception.canBeModified && exceptionInTrustedContext && isCurrentContextUntrusted) {
               CorrectCallGaveException(context.callStack, context.configuration.file, exception, this, closure, argumentValues)
             }
             else {

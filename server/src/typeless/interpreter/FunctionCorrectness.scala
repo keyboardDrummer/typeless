@@ -1,13 +1,15 @@
 package typeless.interpreter
 
-class FunctionCorrectness(functionsWithTests: Map[Closure, Closure]) {
-  var functionCorrectness = Map.empty[Closure, Boolean]
+import typeless.ast.Lambda
 
-  def isClosureCorrect(context: Context, closure: Closure): Boolean = {
-    functionCorrectness.get(closure) match {
+class FunctionCorrectness(functionsWithTests: Map[Lambda, Closure]) {
+  var functionCorrectness = Map.empty[Lambda, Boolean]
+
+  def isLambdaCorrect(context: Context, lambda: Lambda): Boolean = {
+    functionCorrectness.get(lambda) match {
       case Some(correct) => correct
       case None =>
-        val testOption = functionsWithTests.get(closure)
+        val testOption = functionsWithTests.get(lambda)
         testOption.fold(false)(test => {
           if (context.isRunningTest(test)) {
             false
@@ -17,7 +19,7 @@ class FunctionCorrectness(functionsWithTests: Map[Closure, Closure]) {
               case _: ExceptionResult => false
               case _ => true
             }
-            functionCorrectness += closure -> testPassed
+            functionCorrectness += lambda -> testPassed
             testPassed
           }
         })

@@ -3,7 +3,7 @@ package typeless.interpreter
 import miksilo.languageServer.core.language.{Compilation, Phase, SourcePathFromElement}
 import miksilo.languageServer.core.smarts.FileDiagnostic
 import typeless.ChainElement
-import typeless.ast.JavaScriptFile
+import typeless.ast.{JavaScriptFile, Lambda}
 import typeless.server.JavaScriptCompilation
 
 object InterpreterPhase {
@@ -46,8 +46,8 @@ object InterpreterPhase {
       }
     })
     javaScriptCompilation.tests = tests
-    val functionsWithTests: Map[Closure, Closure] = tests.flatMap(test => {
-      functions.get(test._1.dropRight(testKeyword.length)).map(f => (f, test._2)).toIterable
+    val functionsWithTests: Map[Lambda, Closure] = tests.flatMap(test => {
+      functions.get(test._1.dropRight(testKeyword.length)).map(f => (f.lambda, test._2)).toIterable
     })
 
     context.functionCorrectness = Some(new FunctionCorrectness(functionsWithTests))

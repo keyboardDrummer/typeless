@@ -8,6 +8,23 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
 
   val server = new TypelessLanguageServer()
 
+  test("exception in lambda from test") {
+    val program =
+      """function pipeTest() {
+        |  const isNameOfEvenLength = pipe(person =>
+        |    person.name, str => str.length, x => x % 2 == 0);
+        |  assert(isNameOfEvenLength({ name: "Remy" }))
+        |  assert(!isNameOfEvenLength({ name: "Elise" }))
+        |}
+        |const pipe = (...fns) =>
+        |  p => fns.reduce((acc, cur) => cur(cur), p);
+        |""".stripMargin
+
+    val (diagnostics, document) = openAndCheckDocument(server, program)
+    val diagnostic = Diagnostic(SourceRange(Position(7,32),Position(7,36)), Some(1), "Variable cur2 was accessed but is not defined")
+    assertResult(Seq(diagnostic))(diagnostics)
+  }
+
   test("pipe test") {
     val program =
       """function pipeTest() {
@@ -21,7 +38,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |""".stripMargin
 
     val (diagnostics, document) = openAndCheckDocument(server, program)
-    val diagnostic = Diagnostic(SourceRange(Position(7,32),Position(7,36)), Some(1), "Variable cur2 was accessed but is not defined")
+    val diagnostic = Diagnostic(SourceRange(Position(7,32),Position(7,36)), Some(1), "Invalid call to cur2.")
     assertResult(Seq(diagnostic))(diagnostics)
   }
 
