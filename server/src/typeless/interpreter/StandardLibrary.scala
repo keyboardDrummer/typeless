@@ -28,7 +28,8 @@ class Assert extends ObjectValue with ClosureLike {
       case booleanValue: BooleanValue if booleanValue.value =>
         new UndefinedValue()
       case _ =>
-        AssertEqualFailure(context.configuration.file, context.currentFrame().call, argumentValues.head, fakeBoolean)
+        AssertEqualFailure(context.callStack, context.configuration.file,
+          context.currentFrame().call, argumentValues.head, fakeBoolean)
     }
   }
 }
@@ -50,13 +51,13 @@ object ArrayReduce extends ClosureLike {
     val hasSeed = argumentValues.size > 1
     val reduceFunctionValue = argumentValues.head
     if (!reduceFunctionValue.isInstanceOf[ClosureLike]) {
-      return TypeError(reduceFunctionValue.createdAt, "that can be called", reduceFunctionValue)
+      return TypeError(context.callStack, reduceFunctionValue.createdAt, "that can be called", reduceFunctionValue)
     }
     val reduceFunction = reduceFunctionValue.asInstanceOf[ClosureLike]
 
     val thisValue = context.getThis
     if (!thisValue.isInstanceOf[ArrayValue]) {
-      return TypeError(reduceFunctionValue.createdAt, "that has elements", reduceFunctionValue)
+      return TypeError(context.callStack, reduceFunctionValue.createdAt, "that has elements", reduceFunctionValue)
     }
     val array = thisValue.asInstanceOf[ArrayValue]
 
@@ -67,7 +68,7 @@ object ArrayReduce extends ClosureLike {
     var accumulator = seed
     for(index <- startIndex.until(length)) {
       val element = array.get(index)
-      val result = reduceFunction.evaluate(context, Seq[Value](accumulator, element))
+      val result = context.evaluateClosure(context.currentFrame().call, reduceFunction, Seq[Value](accumulator, element))
       result match {
         case e: ExceptionResult => return e
         case value: Value => accumulator = value
@@ -86,7 +87,7 @@ object AssertStrictEqual extends ClosureLike {
     val actual = argumentValues(0)
     val expected = argumentValues(1)
     if (!Value.strictEqual(actual, expected)) {
-      return AssertEqualFailure(context.configuration.file, context.currentFrame().call, actual, expected)
+      return AssertEqualFailure(context.callStack, context.configuration.file, context.currentFrame().call, actual, expected)
     }
     new UndefinedValue()
   }

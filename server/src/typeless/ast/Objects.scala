@@ -8,12 +8,12 @@ import scala.collection.mutable.ArrayBuffer
 
 class New(range: OffsetPointerRange, target: Expression, arguments: Vector[Expression]) extends CallBase(range, target, arguments) {
 
-  override def evaluateClosure(context: Context, argumentValues: ArrayBuffer[Value], closure: ClosureLike): Option[ExpressionResult] = {
+  override def evaluateClosure(context: Context, argumentValues: ArrayBuffer[Value], closure: ClosureLike): ExpressionResult = {
     // TODO, assign __proto__ field from closure.prototype
     val newObj = new ObjectValue()
     newObj.createdAt = this
     context.setThis(newObj)
-    super.evaluateClosure(context, argumentValues, closure).map {
+    super.evaluateClosure(context, argumentValues, closure) match {
       case _: UndefinedValue => newObj
       case result => result
     }
@@ -33,7 +33,7 @@ class BracketAccess(val range: OffsetPointerRange, target: Expression, property:
           case None => if (context.configuration.allowUndefinedPropertyAccess) {
             new UndefinedValue()
           } else {
-            UndefinedMemberAccess(this, stringValue.value, targetValue)
+            UndefinedMemberAccess(context.callStack, this, stringValue.value, targetValue)
           }
         }
       })
@@ -76,7 +76,7 @@ class DotAccess(val range: OffsetPointerRange, target: Expression, property: Nam
         case None => if (context.configuration.allowUndefinedPropertyAccess) {
           new UndefinedValue()
         } else {
-          UndefinedMemberAccess(this, property.name, targetValue)
+          UndefinedMemberAccess(context.callStack, this, property.name, targetValue)
         }
       }
     })

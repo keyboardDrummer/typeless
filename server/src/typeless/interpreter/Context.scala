@@ -1,10 +1,7 @@
 package typeless.interpreter
 
 import miksilo.editorParser.parsers.SourceElement
-import typeless.ast.{Call, CallBase, Expression, MaxCallDepthReached, NameLike, StringValue}
-
-import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
+import typeless.ast.{CallBase, Expression, MaxCallDepthReached, NameLike, StringValue}
 
 trait RunMode {
   def skipErrors: Boolean
@@ -44,32 +41,33 @@ case class RunConfiguration(file: String,
 
 case class Frame(call: CallBase, closure: ClosureLike)
 class Context(var configuration: RunConfiguration,
-              callStack: mutable.ArrayBuffer[Frame],
+              private var _callStack: List[Frame],
               var functionCorrectness: Option[FunctionCorrectness],
               var runningTests: Set[Closure],
               val scope: Scope) {
 
-  def currentFrame(): Frame = callStack.last
+  def callStack  = _callStack
+  def currentFrame(): Frame = callStack.head
 
   var lastDotAccessTarget: Option[ObjectValue] = None
 
   def this(configuration: RunConfiguration, scope: Scope) = {
-    this(configuration, mutable.ArrayBuffer.empty, None, Set.empty, scope)
+    this(configuration, List.empty, None, Set.empty, scope)
   }
 
-  def evaluateClosure(call: CallBase, closure: ClosureLike, argumentValues: collection.Seq[Value]): Option[ExpressionResult] = {
-
+  def evaluateClosure(call: CallBase, closure: ClosureLike, argumentValues: collection.Seq[Value]): ExpressionResult = {
+    val newFrame = Frame(call, closure)
     if (callStack.length > configuration.maxCallDepth) {
-      return None
+      return MaxCallDepthReached(newFrame :: callStack)
     }
-    callStack.addOne(Frame(call, closure))
+    _callStack ::= Frame(call, closure)
     val result = closure.evaluate(this, argumentValues)
-    callStack.remove(callStack.length - 1)
-    Some(result)
+    _callStack = _callStack.tail
+    result
   }
 
   def withFreshCallStack(): Context = {
-    new Context(configuration, mutable.ArrayBuffer.empty, functionCorrectness, runningTests, scope)
+    new Context(configuration, List.empty, functionCorrectness, runningTests, scope)
   }
 
   def isRunningTest(test: Closure): Boolean = {
@@ -85,15 +83,15 @@ class Context(var configuration: RunConfiguration,
     result
   }
 
-  def isCurrentContextCorrect: Boolean = {
+  def isCurrentContextTrusted: Boolean = {
     if (callStack.isEmpty)
       false
     else {
-      isClosureCorrect(callStack.last.closure)
+      isClosureTrusted(callStack.last.closure)
     }
   }
 
-  def isClosureCorrect(closureLike: ClosureLike): Boolean = {
+  def isClosureTrusted(closureLike: ClosureLike): Boolean = {
     closureLike match {
       case closure: Closure =>
         functionCorrectness.fold(true)(c => c.isClosureCorrect(this, closure))
@@ -112,7 +110,7 @@ class Context(var configuration: RunConfiguration,
     result
   }
 
-  def get(element: SourceElement, name: String): ExpressionResult = scope.get(element, name)
+  def get(element: SourceElement, name: String): ExpressionResult = scope.get(this, element, name)
 
   def declareWith(source: NameLike, name: String, value: Value): Boolean = {
     value.definedAt = Some(source)
@@ -127,7 +125,7 @@ class Context(var configuration: RunConfiguration,
     val result = evaluateExpression(expression)
     result match {
       case value: StringValue => value
-      case value: Value => TypeError(expression, "that is text", value)
+      case value: Value => TypeError(callStack, expression, "that is text", value)
       case e: ExceptionResult => e
     }
   }
@@ -137,7 +135,7 @@ class Context(var configuration: RunConfiguration,
     result match {
       case value: ObjectValue => value
       case value: Value =>
-        TypeError(expression, "with properties", value)
+        TypeError(callStack, expression, "with properties", value)
       case e: ExceptionResult => e
     }
   }

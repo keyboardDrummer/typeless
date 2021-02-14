@@ -24,12 +24,15 @@ trait ExpressionResult {
 }
 
 trait UserExceptionResult extends ExceptionResult {
-  def canBeModified: Boolean
+  def callStack: List[Frame]
+
+  // TODO remove field
+  def canBeModified: Boolean = true
+
   def toDiagnostic: Diagnostic
 }
 
 trait SimpleExceptionResult extends UserExceptionResult {
-  def canBeModified = true
   def element: SourceElement
   def message: String
 
@@ -47,18 +50,18 @@ trait ExceptionResult extends ExpressionResult with StatementResult {
   override def toExpressionResult: ExpressionResult = this
 }
 
-case class UndefinedMemberAccess(element: SourceElement, name: String, value: Value)
+case class UndefinedMemberAccess(callStack: List[Frame], element: SourceElement, name: String, value: Value)
   extends SimpleExceptionResult {
   override def message: String = s"The member '$name' is not available on value '${value.represent()}'"
 }
 
 trait CatchableExceptionResult extends ExceptionResult
 
-case class ReferenceError(element: SourceElement, name: String)
+case class ReferenceError(callStack: List[Frame], element: SourceElement, name: String)
   extends SimpleExceptionResult with CatchableExceptionResult {
   override def message: String = s"Variable $name was accessed but is not defined"
 }
-case class TypeError(element: SourceElement, expected: String, value: Value)
+case class TypeError(callStack: List[Frame], element: SourceElement, expected: String, value: Value)
   extends SimpleExceptionResult with CatchableExceptionResult {
   override def message: String = s"Expected value $expected but got ${value.represent()}"
 }
@@ -178,9 +181,11 @@ class Scope(parentOption: Option[Scope] = None) extends ScopeLike {
     }
   }
 
-  def get(element: SourceElement, name: String): ExpressionResult = {
+  def get(context: Context, element: SourceElement, name: String): ExpressionResult = {
     environment.getOrElse[ExpressionResult](name, {
-      parentOption.fold[ExpressionResult](ReferenceError(element, name))(parent => parent.get(element, name))
+      parentOption.fold[ExpressionResult](
+        ReferenceError(context.callStack, element, name))(
+        parent => parent.get(context, element, name))
     })
   }
 
@@ -243,7 +248,7 @@ class Closure(val lambda: Lambda, val state: Scope) extends Value with ClosureLi
 class BooleanValue(val value: Boolean) extends PrimitiveValue[Boolean] {
 }
 
-case class NotImplementedException(element: SourceElement) extends SimpleExceptionResult {
+case class NotImplementedException(callStack: List[Frame], element: SourceElement) extends SimpleExceptionResult {
   override def message: String =
     "The interpreter functionality required to evaluate this code was not yet implemented."
 }
@@ -254,7 +259,12 @@ trait ClosureLike extends Value {
 }
 
 
-case class AssertEqualFailure(file: String, call: CallBase, actual: Value, expected: Value) extends UserExceptionResult {
+case class AssertEqualFailure(callStack: List[Frame],
+                              file: String,
+                              call: CallBase,
+                              actual: Value,
+                              expected: Value)
+  extends UserExceptionResult {
 
   override def toDiagnostic: Diagnostic = {
     val message = s"Expression was ${actual.represent()} while ${expected.represent()} was expected"

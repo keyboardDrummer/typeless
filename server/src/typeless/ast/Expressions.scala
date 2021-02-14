@@ -11,7 +11,7 @@ class Negate(val range: OffsetPointerRange, value: Expression) extends Expressio
   override def evaluate(context: Context): ExpressionResult = {
     context.evaluateExpression(value) match {
       case boolean: BooleanValue => new BooleanValue(!boolean.value)
-      case value: Value => TypeError(this, "that is true or false", value)
+      case value: Value => TypeError(context.callStack, this, "that is true or false", value)
       case e: ExceptionResult => e
     }
   }
@@ -105,7 +105,7 @@ class Modulo(val range: OffsetPointerRange, val left: Expression, val right: Exp
     (leftValue, rightValue) match {
       case (leftInt: IntValue, rightInt: IntValue) =>
         new IntValue(leftInt.value % rightInt.value)
-      case _ => TypeError(this, "that supports %", leftValue)
+      case _ => TypeError(context.callStack, this, "that supports %", leftValue)
     }
   }
 }
@@ -114,7 +114,7 @@ class Subtraction(val range: OffsetPointerRange, val left: Expression, val right
   override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = {
     (leftValue, rightValue) match {
       case (leftInt: IntValue, rightInt: IntValue) => new IntValue(leftInt.value - rightInt.value)
-      case _ => TypeError(this, "that supports subtraction", leftValue)
+      case _ => TypeError(context.callStack, this, "that supports subtraction", leftValue)
     }
   }
 }
@@ -123,7 +123,7 @@ class LessThan(val range: OffsetPointerRange, val left: Expression, val right: E
   override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = {
     (leftValue, rightValue) match {
       case (leftInt: IntValue, rightInt: IntValue) => new BooleanValue(leftInt.value < rightInt.value)
-      case _ => TypeError(left, "that supports the '<' operator", leftValue)
+      case _ => TypeError(context.callStack, left, "that supports the '<' operator", leftValue)
     }
   }
 }
@@ -138,7 +138,7 @@ class Multiplication(val range: OffsetPointerRange, val left: Expression, val ri
   override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = {
     (leftValue, rightValue) match {
       case (leftInt: IntValue, rightInt: IntValue) => new IntValue(leftInt.value * rightInt.value)
-      case _ => TypeError(left, "that supports the '*' operator", leftValue)
+      case _ => TypeError(context.callStack, left, "that supports the '*' operator", leftValue)
     }
   }
 }
@@ -147,7 +147,7 @@ class Addition(val range: OffsetPointerRange, val left: Expression, val right: E
   override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = {
     (leftValue, rightValue) match {
       case (leftInt: IntValue, rightInt: IntValue) => new IntValue(leftInt.value + rightInt.value)
-      case _ => TypeError(left, "that supports the '+' operator", leftValue)
+      case _ => TypeError(context.callStack, left, "that supports the '+' operator", leftValue)
     }
   }
 }

@@ -8,6 +8,23 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
 
   val server = new TypelessLanguageServer()
 
+  test("pipe test") {
+    val program =
+      """function pipeTest() {
+        |  const isNameOfEvenLength = pipe(person =>
+        |    person.name, str => str.length, x => x % 2 == 0);
+        |  assert(isNameOfEvenLength({ name: "Remy" }))
+        |  assert(!isNameOfEvenLength({ name: "Elise" }))
+        |}
+        |const pipe = (...fns) =>
+        |  p => fns.reduce((acc, cur) => cur2(acc), p);
+        |""".stripMargin
+
+    val (diagnostics, document) = openAndCheckDocument(server, program)
+    val diagnostic = Diagnostic(SourceRange(Position(7,32),Position(7,36)), Some(1), "Variable cur2 was accessed but is not defined")
+    assertResult(Seq(diagnostic))(diagnostics)
+  }
+
   ignore("demo code completion") {
     val program =
       """function getNameTest() {

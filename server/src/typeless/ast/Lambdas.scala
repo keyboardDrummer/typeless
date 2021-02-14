@@ -25,7 +25,7 @@ class Lambda(val range: OffsetPointerRange, val arguments: Vector[Argument], val
   }
 }
 
-class IncorrectNativeCall(file: String, exception: NativeCallFailed, call: CallBase, argumentValues: collection.Seq[Value])
+case class IncorrectNativeCall(callStack: List[Frame], file: String, exception: NativeCallFailed, call: CallBase, argumentValues: collection.Seq[Value])
   extends UserExceptionResult {
   override def canBeModified: Boolean = false
 
@@ -42,7 +42,7 @@ class IncorrectNativeCall(file: String, exception: NativeCallFailed, call: CallB
 }
 
 // TODO remove file argument
-class CorrectCallGaveException(file: String, exception: UserExceptionResult, call: CallBase,
+case class CorrectCallGaveException(callStack: List[Frame], file: String, exception: UserExceptionResult, call: CallBase,
                                closure: ClosureLike, argumentValues: collection.Seq[Value])
   extends UserExceptionResult {
 
@@ -53,9 +53,6 @@ class CorrectCallGaveException(file: String, exception: UserExceptionResult, cal
     val relatedInfo = RelatedInformation(FileRange(file, innerDiagnostic.range), innerDiagnostic.message)
     Diagnostic(call.rangeOption.get.toSourceRange, Some(1), message, relatedInformation = Seq(relatedInfo))
   }
-
-  // TODO consider allowing this to be modified and changing the currentClosureCanBeWrong behavior in Call
-  override def canBeModified: Boolean = false
 }
 
 class Call(range: OffsetPointerRange, target: Expression, arguments: Vector[Expression]) extends CallBase(range, target, arguments) {
@@ -65,7 +62,7 @@ class Call(range: OffsetPointerRange, target: Expression, arguments: Vector[Expr
     super.evaluate(context)
   }
 
-  override def evaluateClosure(context: Context, argumentValues: ArrayBuffer[Value], closure: ClosureLike): Option[ExpressionResult] = {
+  override def evaluateClosure(context: Context, argumentValues: ArrayBuffer[Value], closure: ClosureLike): ExpressionResult = {
     context.lastDotAccessTarget.foreach(target => context.setThis(target))
     super.evaluateClosure(context, argumentValues, closure)
   }
@@ -95,24 +92,20 @@ class CallBase(val range: OffsetPointerRange, target: Expression, arguments: Vec
     targetResult match {
       case closure: ClosureLike =>
 
-        val resultOption = evaluateClosure(context, argumentValues, closure)
-        if (resultOption.isEmpty)
-          return MaxCallDepthReached(this)
-
-        val result = resultOption.get
+        val result = evaluateClosure(context, argumentValues, closure)
         val modifiedResult = result match {
           case native: NativeCallFailed =>
-            val currentClosureCanBeWrong = !context.isCurrentContextCorrect
+            val currentClosureCanBeWrong = !context.isCurrentContextTrusted
             if (currentClosureCanBeWrong) {
-              new IncorrectNativeCall(context.configuration.file, native, this, argumentValues)
+              IncorrectNativeCall(context.callStack, context.configuration.file, native, this, argumentValues)
             } else {
               native
             }
 
           case exception: UserExceptionResult =>
-            val currentClosureCanBeWrong = !context.isCurrentContextCorrect
-            if (exception.canBeModified && context.isClosureCorrect(closure) && currentClosureCanBeWrong) {
-              new CorrectCallGaveException(context.configuration.file, exception, this, closure, argumentValues)
+            val exceptionInTrustedContext = context.isClosureTrusted(exception.callStack.head.closure)
+            if (exception.canBeModified && exceptionInTrustedContext && !context.isCurrentContextTrusted) {
+              CorrectCallGaveException(context.callStack, context.configuration.file, exception, this, closure, argumentValues)
             }
             else {
               exception
@@ -121,18 +114,20 @@ class CallBase(val range: OffsetPointerRange, target: Expression, arguments: Vec
         }
         modifiedResult
       case targetValue: Value =>
-        TypeError(target, "that can be called", targetValue)
+        TypeError(context.callStack, target, "that can be called", targetValue)
       case _ => targetResult
     }
   }
 
-  def evaluateClosure(context: Context, argumentValues: ArrayBuffer[Value], closure: ClosureLike): Option[ExpressionResult] = {
+  def evaluateClosure(context: Context, argumentValues: ArrayBuffer[Value], closure: ClosureLike): ExpressionResult = {
     context.evaluateClosure(this, closure, argumentValues)
   }
 }
 
-case class MaxCallDepthReached(element: SourceElement) extends SimpleExceptionResult {
+case class MaxCallDepthReached(callStack: List[Frame]) extends SimpleExceptionResult {
   override def message: String = "Call takes too long for a test"
+
+  override def element: SourceElement = callStack.head.call
 }
 
 class ReturnStatement(val range: OffsetPointerRange, expression: Expression) extends Statement {
