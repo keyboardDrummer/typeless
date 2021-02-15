@@ -31,30 +31,32 @@ object InterpreterPhase {
     }
 
     val rootEnvironment = context.scope.environment
-    val functions: Map[String, Closure] = rootEnvironment.flatMap(s => {
+    val functionsByName: Map[String, Closure] = rootEnvironment.flatMap(s => {
       s._2 match {
         case closure: Closure => Seq(s._1 -> closure)
         case _ => Seq.empty
       }
     }).toMap
     val testKeyword = "Test"
-    val tests: Map[String, Closure] = functions.flatMap(s => {
+    val testsByName: Map[String, Closure] = functionsByName.flatMap(s => {
       if (s._1.endsWith(testKeyword) && s._2.lambda.arguments.isEmpty) {
         Seq(s._1 -> s._2)
       } else {
         Seq.empty
       }
     })
-    javaScriptCompilation.tests = tests
-    val functionsWithTests: Map[Lambda, Closure] = tests.flatMap(test => {
-      functions.get(test._1.dropRight(testKeyword.length)).map(f => (f.lambda, test._2)).toIterable
+    javaScriptCompilation.tests = testsByName
+    val functionsWithTests: Map[Lambda, Closure] = testsByName.flatMap(test => {
+      val associatedFunctionName = test._1.dropRight(testKeyword.length)
+      functionsByName.get(associatedFunctionName).map(f => (f.lambda, test._2)).toIterable
     })
 
-    context.functionCorrectness = Some(new FunctionCorrectness(functionsWithTests))
+    val tests = testsByName.values.map(c => c.lambda).toSet
+    context.functionCorrectness = Some(new FunctionCorrectness(functionsWithTests, tests))
 
     javaScriptCompilation.context = context
 
-    tests.foreach(test => {
+    testsByName.foreach(test => {
       val result = context.runTest(test._2)
       result match {
         case e: UserExceptionResult =>

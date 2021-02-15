@@ -108,9 +108,8 @@ class Context(var configuration: RunConfiguration,
       case closure: Closure =>
         // TODO traverse to highest ancestor lambda.
         val lambda = closure.lambda
-        functionCorrectness.fold[TrustLevel](Trusted)(c => {
-          if (c.isLambdaTrusted(this, lambda)) Trusted else Untrusted
-        })
+
+        functionCorrectness.fold[TrustLevel](Trusted)(c => c.getLambdaTrustLevel(this, lambda))
       case _ => Trusted
     }
   }
