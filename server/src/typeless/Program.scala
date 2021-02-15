@@ -33,7 +33,7 @@ trait PathElement {
 }
 
 class RootElement(uri: String) extends PathElement {
-  def uriOption = Some(uri)
+  def uriOption: Option[String] = Some(uri)
 
   override def ancestors: List[SourceElement] = Nil
 }
@@ -48,5 +48,10 @@ case class ChainElement(parent: PathElement, sourceElement: SourceElement) exten
 
   override def childElements: Seq[ChainElement] = {
     sourceElement.childElements.map(e => ChainElement(this, e))
+  }
+
+  def foreach(action: ChainElement => ()): Unit = {
+    action(this)
+    childElements.foreach(e => e.foreach(action))
   }
 }

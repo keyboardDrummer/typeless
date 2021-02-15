@@ -1,5 +1,6 @@
 package typeless.interpreter
 
+import miksilo.editorParser.parsers.SourceElement
 import miksilo.languageServer.core.language.{Compilation, Phase, SourcePathFromElement}
 import miksilo.languageServer.core.smarts.FileDiagnostic
 import typeless.ChainElement
@@ -16,12 +17,17 @@ object InterpreterPhase {
 
     val uri = compilation.rootFile.get
     val javaScriptCompilation = compilation.asInstanceOf[JavaScriptCompilation]
-    val program = compilation.program.asInstanceOf[ChainElement].sourceElement.asInstanceOf[JavaScriptFile]
+    val programPath = compilation.program.asInstanceOf[ChainElement]
+    val program = programPath.sourceElement.asInstanceOf[JavaScriptFile]
+
+    var pathsByElement = Map.empty[SourceElement, ChainElement]
+    programPath.foreach(e => pathsByElement += e.sourceElement -> e)
+
     val defaultState = StandardLibrary.createState()
 
     val scan = new Scan()
     val configuration = RunConfiguration(uri, maxCallDepth = maxCallDepth,
-      allowUndefinedPropertyAccess = false, mode = scan)
+      allowUndefinedPropertyAccess = false, pathsByElement, mode = scan)
     val context = new Context(configuration, scope = defaultState)
     val result = program.evaluate(context)
     result match {

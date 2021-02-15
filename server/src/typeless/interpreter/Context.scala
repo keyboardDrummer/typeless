@@ -1,6 +1,7 @@
 package typeless.interpreter
 
 import miksilo.editorParser.parsers.SourceElement
+import typeless.ChainElement
 import typeless.ast.{CallElement, CallLike, Expression, Lambda, MaxCallDepthReached, NameLike, StringValue}
 
 trait RunMode {
@@ -33,6 +34,7 @@ class Scan extends RunMode {
 case class RunConfiguration(file: String,
                             maxCallDepth: Int,
                             allowUndefinedPropertyAccess: Boolean,
+                            pathsByElement: Map[SourceElement, ChainElement],
                             var mode: RunMode) {
 
   def skipErrors: Boolean = mode.skipErrors
@@ -106,8 +108,9 @@ class Context(var configuration: RunConfiguration,
       case closure: Closure =>
         // TODO traverse to highest ancestor lambda.
         val lambda = closure.lambda
+        val outerLambda = configuration.pathsByElement(lambda).ancestors.collect({ case lambda: Lambda => lambda}).last
 
-        functionCorrectness.fold[TrustLevel](Trusted)(c => c.getLambdaTrustLevel(this, lambda))
+        functionCorrectness.fold[TrustLevel](Trusted)(c => c.getLambdaTrustLevel(this, outerLambda))
       case _ => Trusted
     }
   }

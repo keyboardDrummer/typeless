@@ -11,17 +11,17 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
   test("exception in lambda from test") {
     val program =
       """function pipeTest() {
-        |  const isNameOfEvenLength = pipe(person =>
-        |    person.name, str => str.length, x => x % 2 == 0);
+        |  const isNameOfEvenLength = pipe(person => person.name, str => str.length, x => x % 2 == 0);
         |  assert(isNameOfEvenLength({ name: "Remy" }))
         |  assert(!isNameOfEvenLength({ name: "Elise" }))
         |}
         |const pipe = (...fns) =>
-        |  p => fns.reduce((acc, cur) => cur(cur), p);
+        |  p => fns.reduce((acc, cur) => cur(0), p);
         |""".stripMargin
 
     val (diagnostics, document) = openAndCheckDocument(server, program)
-    val diagnostic = Diagnostic(SourceRange(Position(7,32),Position(7,36)), Some(1), "Invalid call to cur2.")
+    val related = Seq(RelatedInformation(FileRange(document.uri, SourceRange(Position(1,44),Position(1,50))), "Expected value with properties but got 0"))
+    val diagnostic = Diagnostic(SourceRange(Position(6,32),Position(6,38)), Some(1), "Function call failed with arguments (0)", relatedInformation = related)
     assertResult(Seq(diagnostic))(diagnostics)
   }
 
