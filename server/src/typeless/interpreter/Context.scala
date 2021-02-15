@@ -39,6 +39,18 @@ case class RunConfiguration(file: String,
 
 }
 
+trait TrustLevel {
+  def level: Int
+}
+object Test extends TrustLevel {
+  override def level: Int = 1
+}
+object Trusted extends TrustLevel {
+  override def level: Int = 2
+}
+object Untrusted extends TrustLevel {
+  override def level: Int = 0
+}
 case class Frame(call: CallBase, closure: ClosureLike)
 class Context(var configuration: RunConfiguration,
               private var _callStack: List[Frame],
@@ -46,7 +58,7 @@ class Context(var configuration: RunConfiguration,
               var runningTests: Set[Closure],
               val scope: Scope) {
 
-  def callStack  = _callStack
+  def callStack: List[Frame] = _callStack
   def currentFrame(): Frame = callStack.head
 
   var lastDotAccessTarget: Option[ObjectValue] = None
@@ -83,23 +95,23 @@ class Context(var configuration: RunConfiguration,
     result
   }
 
-  def isCurrentContextTrusted: Boolean = {
+  def getCurrentContextTrust: TrustLevel = {
     if (callStack.isEmpty)
-      false
+      Test
     else {
-      isClosureTrusted(callStack.head.closure)
+      getClosureTrustLevel(callStack.head.closure)
     }
   }
 
-  def isClosureTrusted(closureLike: ClosureLike): Boolean = {
+  def getClosureTrustLevel(closureLike: ClosureLike): TrustLevel = {
     closureLike match {
       case closure: Closure =>
         // TODO traverse to highest ancestor lambda.
         val lambda = closure.lambda
-        functionCorrectness.fold(true)(c => {
-          c.isLambdaCorrect(this, lambda)
+        functionCorrectness.fold[TrustLevel](Trusted)(c => {
+          if (c.isLambdaTrusted(this, lambda)) Trusted else Untrusted
         })
-      case _ => true
+      case _ => Trusted
     }
   }
 

@@ -5,7 +5,7 @@ import typeless.ast.Lambda
 class FunctionCorrectness(functionsWithTests: Map[Lambda, Closure]) {
   var functionCorrectness = Map.empty[Lambda, Boolean]
 
-  def isLambdaCorrect(context: Context, lambda: Lambda): Boolean = {
+  def isLambdaTrusted(context: Context, lambda: Lambda): Boolean = {
     functionCorrectness.get(lambda) match {
       case Some(correct) => correct
       case None =>

@@ -21,7 +21,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |""".stripMargin
 
     val (diagnostics, document) = openAndCheckDocument(server, program)
-    val diagnostic = Diagnostic(SourceRange(Position(7,32),Position(7,36)), Some(1), "Variable cur2 was accessed but is not defined")
+    val diagnostic = Diagnostic(SourceRange(Position(7,32),Position(7,36)), Some(1), "Invalid call to cur2.")
     assertResult(Seq(diagnostic))(diagnostics)
   }
 
@@ -38,7 +38,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |""".stripMargin
 
     val (diagnostics, document) = openAndCheckDocument(server, program)
-    val diagnostic = Diagnostic(SourceRange(Position(7,32),Position(7,36)), Some(1), "Invalid call to cur2.")
+    val diagnostic = Diagnostic(SourceRange(Position(7,32),Position(7,36)), Some(1), "Variable cur2 was accessed but is not defined")
     assertResult(Seq(diagnostic))(diagnostics)
   }
 

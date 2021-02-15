@@ -95,7 +95,7 @@ class CallBase(val range: OffsetPointerRange, target: Expression, arguments: Vec
         val result = evaluateClosure(context, argumentValues, closure)
         val modifiedResult = result match {
           case native: NativeCallFailed =>
-            val currentClosureCanBeWrong = !context.isCurrentContextTrusted
+            val currentClosureCanBeWrong = context.getCurrentContextTrust != Trusted
             if (currentClosureCanBeWrong) {
               IncorrectNativeCall(context.callStack, context.configuration.file, native, this, argumentValues)
             } else {
@@ -103,9 +103,12 @@ class CallBase(val range: OffsetPointerRange, target: Expression, arguments: Vec
             }
 
           case exception: UserExceptionResult =>
-            val exceptionInTrustedContext = context.isClosureTrusted(exception.callStack.head.closure)
-            val isCurrentContextUntrusted = context.callStack.isEmpty || !context.isClosureTrusted(context.callStack.head.closure)
-            if (exception.canBeModified && exceptionInTrustedContext && isCurrentContextUntrusted) {
+            val callee = exception.callStack.head.closure
+            val calleeTrust = context.getClosureTrustLevel(callee)
+            val callerTrust = context.getCurrentContextTrust
+
+            val blameCall = exception.canBeModified && calleeTrust.level > callerTrust.level
+            if (blameCall) {
               CorrectCallGaveException(context.callStack, context.configuration.file, exception, this, closure, argumentValues)
             }
             else {

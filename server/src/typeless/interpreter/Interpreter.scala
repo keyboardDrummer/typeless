@@ -26,6 +26,7 @@ trait ExpressionResult {
 trait UserExceptionResult extends ExceptionResult {
   def callStack: List[Frame]
 
+  // TOOD maybe replace by making the assert closures untrusted.
   def canBeModified: Boolean = true
 
   def toDiagnostic: Diagnostic
@@ -256,7 +257,6 @@ trait ClosureLike extends Value {
   override def represent(depth: Int): String = "native function"
   def evaluate(context: Context, argumentValues: collection.Seq[Value]): ExpressionResult
 }
-
 
 case class AssertEqualFailure(callStack: List[Frame],
                               file: String,
