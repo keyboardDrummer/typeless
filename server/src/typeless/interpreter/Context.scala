@@ -1,7 +1,7 @@
 package typeless.interpreter
 
 import miksilo.editorParser.parsers.SourceElement
-import typeless.ast.{CallBase, Expression, Lambda, MaxCallDepthReached, NameLike, StringValue}
+import typeless.ast.{CallElement, CallLike, Expression, Lambda, MaxCallDepthReached, NameLike, StringValue}
 
 trait RunMode {
   def skipErrors: Boolean
@@ -51,7 +51,8 @@ object Trusted extends TrustLevel {
 object Untrusted extends TrustLevel {
   override def level: Int = 0
 }
-case class Frame(call: CallBase, closure: ClosureLike)
+object TestFrameworkCall extends CallLike
+case class Frame(call: CallLike, closure: ClosureLike)
 class Context(var configuration: RunConfiguration,
               private var _callStack: List[Frame],
               var functionCorrectness: Option[FunctionCorrectness],
@@ -67,7 +68,7 @@ class Context(var configuration: RunConfiguration,
     this(configuration, List.empty, None, Set.empty, scope)
   }
 
-  def evaluateClosure(call: CallBase, closure: ClosureLike, argumentValues: collection.Seq[Value]): ExpressionResult = {
+  def evaluateClosure(call: CallElement, closure: ClosureLike, argumentValues: collection.Seq[Value]): ExpressionResult = {
     val newFrame = Frame(call, closure)
     if (callStack.length > configuration.maxCallDepth) {
       return MaxCallDepthReached(newFrame :: callStack)
@@ -88,19 +89,16 @@ class Context(var configuration: RunConfiguration,
 
   def runTest(test: Closure): ExpressionResult = {
     runningTests += test
-    //callStack.addOne(test)
+    val frame = Frame(TestFrameworkCall, test)
+    _callStack ::= frame
     val result = test.evaluate(this, Seq.empty)
-    //callStack.remove(callStack.length - 1)
+    _callStack = _callStack.tail
     runningTests -= test
     result
   }
 
   def getCurrentContextTrust: TrustLevel = {
-    if (callStack.isEmpty)
-      Test
-    else {
-      getClosureTrustLevel(callStack.head.closure)
-    }
+    getClosureTrustLevel(callStack.head.closure)
   }
 
   def getClosureTrustLevel(closureLike: ClosureLike): TrustLevel = {

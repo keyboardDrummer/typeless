@@ -2,6 +2,7 @@ package typeless.interpreter
 
 import miksilo.editorParser.parsers.SourceElement
 import miksilo.editorParser.parsers.editorParsers.OffsetPointerRange
+import typeless.ast.CallElement
 
 // TODO fix calls of this function
 case class NativeCallFailed(expectedValues: Seq[Value]) extends ExceptionResult
@@ -29,7 +30,7 @@ class Assert extends ObjectValue with ClosureLike {
         new UndefinedValue()
       case _ =>
         AssertEqualFailure(context.callStack, context.configuration.file,
-          context.currentFrame().call, argumentValues.head, fakeBoolean)
+          context.currentFrame().call.asInstanceOf[CallElement], argumentValues.head, fakeBoolean)
     }
   }
 }
@@ -68,7 +69,7 @@ object ArrayReduce extends ClosureLike {
     var accumulator = seed
     for(index <- startIndex.until(length)) {
       val element = array.get(index)
-      val result = context.evaluateClosure(context.currentFrame().call, reduceFunction, Seq[Value](accumulator, element))
+      val result = context.evaluateClosure(context.currentFrame().call.asInstanceOf[CallElement], reduceFunction, Seq[Value](accumulator, element))
       result match {
         case e: ExceptionResult => return e
         case value: Value => accumulator = value
@@ -87,7 +88,8 @@ object AssertStrictEqual extends ClosureLike {
     val actual = argumentValues(0)
     val expected = argumentValues(1)
     if (!Value.strictEqual(actual, expected)) {
-      return AssertEqualFailure(context.callStack, context.configuration.file, context.currentFrame().call, actual, expected)
+      return AssertEqualFailure(context.callStack, context.configuration.file,
+        context.currentFrame().call.asInstanceOf[CallElement], actual, expected)
     }
     new UndefinedValue()
   }

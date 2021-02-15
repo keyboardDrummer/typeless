@@ -3,7 +3,7 @@ package typeless.interpreter
 import miksilo.editorParser.parsers.SourceElement
 import miksilo.editorParser.parsers.core.TextPointer
 import miksilo.lspprotocol.lsp.{Diagnostic, FileRange, RelatedInformation}
-import typeless.ast.{CallBase, Lambda, NameLike, Statement}
+import typeless.ast.{CallElement, Lambda, NameLike, Statement}
 
 import scala.collection.mutable
 
@@ -260,7 +260,7 @@ trait ClosureLike extends Value {
 
 case class AssertEqualFailure(callStack: List[Frame],
                               file: String,
-                              call: CallBase,
+                              call: CallElement,
                               actual: Value,
                               expected: Value)
   extends UserExceptionResult {

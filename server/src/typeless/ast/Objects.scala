@@ -6,7 +6,7 @@ import typeless.interpreter._
 
 import scala.collection.mutable.ArrayBuffer
 
-class New(range: OffsetPointerRange, target: Expression, arguments: Vector[Expression]) extends CallBase(range, target, arguments) {
+class New(range: OffsetPointerRange, target: Expression, arguments: Vector[Expression]) extends CallElement(range, target, arguments) {
 
   override def evaluateClosure(context: Context, argumentValues: ArrayBuffer[Value], closure: ClosureLike): ExpressionResult = {
     // TODO, assign __proto__ field from closure.prototype

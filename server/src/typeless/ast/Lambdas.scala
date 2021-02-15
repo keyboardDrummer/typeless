@@ -25,7 +25,7 @@ class Lambda(val range: OffsetPointerRange, val arguments: Vector[Argument], val
   }
 }
 
-case class IncorrectNativeCall(callStack: List[Frame], file: String, exception: NativeCallFailed, call: CallBase, argumentValues: collection.Seq[Value])
+case class IncorrectNativeCall(callStack: List[Frame], file: String, exception: NativeCallFailed, call: CallElement, argumentValues: collection.Seq[Value])
   extends UserExceptionResult {
   override def canBeModified: Boolean = false
 
@@ -42,8 +42,8 @@ case class IncorrectNativeCall(callStack: List[Frame], file: String, exception: 
 }
 
 // TODO remove file argument
-case class CorrectCallGaveException(callStack: List[Frame], file: String, exception: UserExceptionResult, call: CallBase,
-                               closure: ClosureLike, argumentValues: collection.Seq[Value])
+case class CorrectCallGaveException(callStack: List[Frame], file: String, exception: UserExceptionResult, call: CallElement,
+                                    closure: ClosureLike, argumentValues: collection.Seq[Value])
   extends UserExceptionResult {
 
   override def toDiagnostic: Diagnostic = {
@@ -55,7 +55,7 @@ case class CorrectCallGaveException(callStack: List[Frame], file: String, except
   }
 }
 
-class Call(range: OffsetPointerRange, target: Expression, arguments: Vector[Expression]) extends CallBase(range, target, arguments) {
+class Call(range: OffsetPointerRange, target: Expression, arguments: Vector[Expression]) extends CallElement(range, target, arguments) {
 
   override def evaluate(context: Context): ExpressionResult = {
     context.lastDotAccessTarget = None
@@ -68,7 +68,8 @@ class Call(range: OffsetPointerRange, target: Expression, arguments: Vector[Expr
   }
 }
 
-class CallBase(val range: OffsetPointerRange, target: Expression, arguments: Vector[Expression]) extends Expression {
+trait CallLike
+class CallElement(val range: OffsetPointerRange, target: Expression, arguments: Vector[Expression]) extends Expression with CallLike {
 
   override def childElements: Seq[SourceElement] = {
     Seq(target) ++ arguments
@@ -131,7 +132,7 @@ class CallBase(val range: OffsetPointerRange, target: Expression, arguments: Vec
 case class MaxCallDepthReached(callStack: List[Frame]) extends SimpleExceptionResult {
   override def message: String = "Call takes too long for a test"
 
-  override def element: SourceElement = callStack.head.call
+  override def element: SourceElement = callStack.head.call.asInstanceOf[CallElement]
 }
 
 class ReturnStatement(val range: OffsetPointerRange, expression: Expression) extends Statement {
