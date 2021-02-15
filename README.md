@@ -4,48 +4,32 @@ Typeless provides the great editor tooling we're used to from TypeScript, but th
 
 ```javascript
 function pipeTest() {
-  const plusOneTimesTwoMinusOne = pipe(x => x + 1, x => x * 2, x => x - 1);
-  assert.strictEqual(plusOneTimesTwoMinusOne(0), 1)
-  assert.strictEqual(plusOneTimesTwoMinusOne(1), 3)
+  const isNameOfEvenLength = pipe(person => 
+    person.name, str => str.length, x => x % 2 == 0);
+  assert(isNameOfEvenLength({ name: "Remy" }))
+  assert(!isNameOfEvenLength({ name: "Elise" }))
 }
 const pipe = (...fns) => p => fns.reduce((acc, cur) => cur(acc), p);
 // When typing 'fns.' code completion for arrays is shown.
 // When typing 'reduce(', example arguments like 'x => x + 1' are shown. 
 // Hovering over 'cur', 'acc' or 'p' shows us the values these variables can get when running the test.
-
-function isNameOfEvenLengthTest() {
-  assert.strictEqual(isNameOfEvenLength({ name: "Remy" }), true)
-  assert.strictEqual(isNameOfEvenLength({ name: "Elise" }), false)
-}
-const isNameOfEvenLength = pipe(person => person.name, str => str.length, x => x % 2 == 0)
-// When typing 'pipe(', example arguments to pipe such as 'x => x + 1' are shown.
-// When typing 'person.', code completion suggests 'name'.
-// When typing 'str.', code completion for string members is shown.
-
-const isRemyEven = isNameOfEvenLength({ name: "Remy" })
-// Hovering over isRemyEven shows us that it can have the values 'true' and 'false'.
 ```
 Note how in the above code the tests are written before the code under test. Test-driven development is needed for Typeless to work well.
 
-Now let's look at the TypeScript equivalent:
+Now let's look at the TypeScript equivalent, but without the test:
 
 ```typescript
+type Person = { name: string }
+
 type ArityOneFn = (arg: any) => any;
-type PickLastInTuple<T extends any[]> = T extends [...rest: infer U, argn: infer L ] ? L : never;
+type PickLastInTuple<T extends any[]> = 
+  T extends [...rest: infer U, arg: infer L ] ? L : never;
 
 const pipe = <T extends ArityOneFn[]>(...fns: T) => 
   (p: Parameters<T[0]>[0]): ReturnType<PickLastInTuple<T>> => 
   fns.reduce((acc: any, cur: ArityOneFn) => cur(acc), p);
-
-interface IPerson {
-  name: string
-}
-
-const isNameOfEvenLength = pipe((person: IPerson) => person.name, (str: string) => str.length, (x: number) => x % 2 == 0)
-const isRemyEven = isNameOfEvenLength({ name: "Remy" })
-// Hovering over isRemyEven shows us that it's a boolean value.
 ```
-In case you had trouble reading some of the above, these articles explain most of the type-level features used in the above program:
+In case you had trouble reading the above, these articles explain most of the type-level features used in the above program:
 - [Never type](https://www.typescriptlang.org/docs/handbook/basic-types.html#never)
 - [Condtional types](https://www.typescriptlang.org/docs/handbook/advanced-types.html#conditional-types)
 - [Type inference in conditional types](https://www.typescriptlang.org/docs/handbook/advanced-types.html#type-inference-in-conditional-types)
@@ -53,9 +37,9 @@ In case you had trouble reading some of the above, these articles explain most o
 - [Parameters type](https://www.typescriptlang.org/docs/handbook/utility-types.html#parameterstype)
 - [ReturnType type](https://www.typescriptlang.org/docs/handbook/utility-types.html#returntypetype)
 
-Comparing the above two programs, we can see that the TypeScript version has a significant amount of type annotations and these annotations require the reader to understand complex type-specific language features. The Typeless version requires using test-driven development, but the programmer might have done that even if they were not using Typeless. 
+Comparing the above two programs, we can see that the TypeScript version has a significant amount of type annotations, and these require the reader to understand complex type-specific language features. The Typeless version requires using test-driven development, but the programmer might have done that even if they were not using Typeless. 
 
-Comparing TypeScript and Typeless is complicated, and the above example is just one example. However, we hope to have convinced the reader that while types have big benefits, they also come at a cost. A further comparison of the two approaches is found [here](#why-use-javascript-and-typeless-when-i-can-use-typescript). In case you're a developer who prefers JavaScript over TypeScript, we discuss what Typeless adds on top of existing JavaScript tooling [here](#why-not-use-the-javascript-support-in-typescripts-lsp-server).
+Comparing TypeScript and Typeless is complicated, and the above example is just one example. However, we hope to have convinced the reader that while types have big benefits, they also come at a cost. A further comparison of the two approaches is found [here](#why-use-javascript-and-typeless-when-i-can-use-typescript). In case you're a developer who prefers JavaScript to TypeScript, we discuss what Typeless adds on top of existing JavaScript tooling [here](#why-not-use-the-javascript-support-in-typescripts-lsp-server).
 
 <!-- Pipe works better for Typeless than compose, since when writing pipe can already execute the function that executes first, since it's supplied first. -->
 
@@ -68,7 +52,7 @@ Editor tooling provided by Typeless includes:
 - Assisted rename refactoring
 
 ### How do I get it?
-Typeless is currently in the design phase and can't be used. If you're interested in using it, please star the GitHub page or upvote the newspost that brought you here. If you want to comment on the Typeless specification and have no please to do so, please leave your comment in a GitHub issue. You can also create a pull request to suggest changes.
+Typeless is currently in the design phase and can't be used. If you're interested in using it, please star the GitHub page or upvote the post that brought you here. If you want to comment on the Typeless specification and have no please to do so, please leave your comment in a GitHub issue. You can also create a pull request to suggest changes.
 
 # How do I use Typeless?
 Typeless runs unit tests to learn things about the source code under test, so without tests Typeless is useless. To get Typeless support while writing code, developers should use test-driven development. Once written, any code with good test coverage will get support from Typeless, whether it was written in a test-driven approach or not. 
@@ -84,7 +68,7 @@ function fibonacciTest() {
 
 function fibonacci(n) {
   if (n < 2) return 1;
-  return fibonacci(n-1) + fibonacci(n-2);
+  return fibonacci(n - 1) + fibonacci(n - 2);
 }
 ```
 
@@ -118,13 +102,13 @@ function highLevelTest() {
 }
 
 function fibonacciTest() {
-  assert(fibonacci(2) == 3)
-  assert(fibonacci(3) == 5)
+  assert(fibonacci(2) == 1)
+  assert(fibonacci(3) == 2)
 }
 
 function fibonacci(n) {
   if (n < 2) return 1;
-  return fibonacci(n-1) + fibonacci(n-2);
+  return fibonacci(n - 1) + fibonacci(n - 2);
 }
 ```
 
@@ -209,8 +193,8 @@ function fibonacci(n) {
 }
 
 function fibonacciTest() {
-  assert(fibonacci(2) == 3)
-  assert(fibonacci(3) == 5)
+  assert(fibonacci(4) == 3)
+  assert(fibonacci(5) == 5)
 }
 
 function highLevelTest() {
@@ -285,7 +269,7 @@ function travel() {
 }
 ```
 
-When a variable is reassigned the definition location is copied from the current value to the new one.
+When a variable is reassigned, the definition location is copied from the current value to the new one.
 
 ```javascript
 function reAssignment() {
@@ -333,7 +317,7 @@ function useObject(boolean) {
 ```
 
 ## Find references and rename refactoring
-Find references is like an inverse of 'go to definition'. When executed on a definition or a reference to a definiton, find references will show a list of the references to that definition.
+Find references is like an inverse of 'go to definition'. When executed on a definition or a reference to a definition, find references will show a list of the references to that definition.
 
 Rename refactoring is implemented using the find references functionality, since it will renames a definition and all references to that definition.
 
@@ -375,7 +359,7 @@ function square(x) {
 }
 ```
 
-And another one:
+Another one:
 ```javascript
 function nameTest() {
   assert.equal(new Person("Remy").name, "Remy");
@@ -459,7 +443,7 @@ function doesNotCompile() {
 
 However, type inference only works for part of the code, and the programmer has to write type annotations where it doesn't or otherwise risk losing the safety provided by types. For TypeScript, type annotations should be provided on all function signatures since there is no type inference on them.
 
-As TypeScript applications get more complex so do the types required to describe them. The TypeScript handbook features a section called [Advanced types](https://www.typescriptlang.org/docs/handbook/advanced-types.html), which indeed can be used to write advanced types. Here's an example:
+As TypeScript applications get more complex, so do the types required to describe them. The TypeScript handbook features a section called [Advanced types](https://www.typescriptlang.org/docs/handbook/advanced-types.html), which indeed can be used to write advanced types. Here's an example:
 
 ```typescript
 type MyType<TType extends keyof FooTypesMap = 'never'> = {
@@ -509,7 +493,7 @@ class Nil extends List<never> {
 const nil = new Nil();
 ```
 
-And the Typeless equivalent:
+The Typeless equivalent:
 
 ```javascript
 function NodeConstructorTest() {
