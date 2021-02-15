@@ -2,7 +2,7 @@ package typeless.interpreter
 
 import miksilo.editorParser.parsers.SourceElement
 import typeless.ChainElement
-import typeless.ast.{CallElement, CallLike, Expression, Lambda, MaxCallDepthReached, NameLike, StringValue}
+import typeless.ast.{AssignmentTarget, CallElement, CallLike, Expression, Lambda, MaxCallDepthReached, NameLike, StringValue}
 
 trait RunMode {
   def skipErrors: Boolean
@@ -142,6 +142,20 @@ class Context(var configuration: RunConfiguration,
     result match {
       case value: StringValue => value
       case value: Value => TypeError(callStack, expression, "that is text", value)
+      case e: ExceptionResult => e
+    }
+  }
+
+  def getObjectProperty(access: AssignmentTarget, obj: Expression, property: String, setAccessTarget: Boolean): ExpressionResult = {
+    val result = evaluateExpression(obj)
+    def getTypeError(value: Value) = UndefinedMemberAccess(callStack, access, property, value)
+    result match {
+      case objValue: ObjectValue =>
+        if (setAccessTarget) {
+          lastDotAccessTarget = Some(objValue)
+        }
+        objValue.getMember(property).getOrElse(getTypeError(objValue))
+      case value: Value => getTypeError(value)
       case e: ExceptionResult => e
     }
   }

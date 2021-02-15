@@ -20,7 +20,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |""".stripMargin
 
     val (diagnostics, document) = openAndCheckDocument(server, program)
-    val related = Seq(RelatedInformation(FileRange(document.uri, SourceRange(Position(1,44),Position(1,50))), "Expected value with properties but got 0"))
+    val related = Seq(RelatedInformation(FileRange(document.uri, SourceRange(Position(1,44),Position(1, 55))), "The member 'name' is not available on value 0"))
     val diagnostic = Diagnostic(SourceRange(Position(6,32),Position(6,38)), Some(1), "Function call failed with arguments (0)", relatedInformation = related)
     assertResult(Seq(diagnostic))(diagnostics)
   }
@@ -146,7 +146,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |  return n.foo;
         |}
         |""".stripMargin
-    val expected = Seq(Diagnostic(HumanPosition(6, 10).span(1), Some(1), "Expected value with properties but got 3"))
+    val expected = Seq(Diagnostic(HumanPosition(6, 10).span(5), Some(1), "The member 'foo' is not available on value 3"))
     val diagnostics = getDiagnostics(server, program)
     assertResult(expected)(diagnostics)
   }
@@ -161,7 +161,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |  return n.bar;
         |};
         |""".stripMargin
-    val expected = Seq(Diagnostic(HumanPosition(6, 10).span(5), Some(1), "The member 'bar' is not available on value '{ foo: \"Remy\" }'"))
+    val expected = Seq(Diagnostic(HumanPosition(6, 10).span(5), Some(1), "The member 'bar' is not available on value { foo: \"Remy\" }"))
     val diagnostics = getDiagnostics(server, program)
     assertResult(expected)(diagnostics)
   }

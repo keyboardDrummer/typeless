@@ -52,7 +52,7 @@ trait ExceptionResult extends ExpressionResult with StatementResult {
 
 case class UndefinedMemberAccess(callStack: List[Frame], element: SourceElement, name: String, value: Value)
   extends SimpleExceptionResult {
-  override def message: String = s"The member '$name' is not available on value '${value.represent()}'"
+  override def message: String = s"The member '$name' is not available on value ${value.represent()}"
 }
 
 trait CatchableExceptionResult extends ExceptionResult
