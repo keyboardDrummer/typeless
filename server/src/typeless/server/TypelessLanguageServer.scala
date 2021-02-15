@@ -45,7 +45,8 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
     val context = getCompilation.context
     context.configuration.mode = FindScope(element)
     for (test <- getCompilation.tests.values) {
-      val result = test.evaluate(context, Seq.empty)
+      // TODO add test that fails when we do 'val result = test.evaluate(context, Seq.empty)' here
+      val result = context.runTest(test)
       result match {
         case information: ScopeInformation =>
           return Some(information.scope)
