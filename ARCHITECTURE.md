@@ -1,23 +1,49 @@
+## What is it?
+Typeless is an LSP server that provides editor tooling for JavaScript.
 
-### What's the simplest solution?
-typeless.Program state for the interpreter mirrors what the programmer is using.
-For every test we know which lines of code it covers. 
-If any of those lines change, the test is marked dirty.
-Dirty tests are queued for being re-run. Tests when run provide diagnostics. Those diagnostics are removed when the test is marked dirty.
+## Architecture
+Typeless uses a custom JavaScript interpreter to parse and run your JavaScript code. The LSP server invokes this interpreter once to determine which tests are defined, and then once on each test, to compute diagnostics and the mapping between definitions and references.
 
-If the programmer requests information at a particular code point, we run a test that covers this line and provide information using that.
+For all LSP server requests that require knowledge of values, such as hover, code completion and call signature support, Typeless invokes one or more tests to compute these values on the fly.
 
-### What can we do to speed things up?
+## Definitions and references
+One thing the custom interpreter enables is resolving definitions and references. Definition sites are attached to values as metadata and travel alongside those values to where they're referred to. What's interesting is what constitutes a definition. For example, in the following program, where is the property 'name' defined?
 
-We can store code navigation and variable value information after every test run. However, this costs memory. We can implement a sort of garbage collection, where we prioritise storing information about elements in files that the user has open, and files that can be reached from there, but information of files that are too 'deep' is thrown away.
+```
+const obj = {};
+obj["name"] = "Jeroen";
+obj.name = "Remy";
+obj.name = "Elise";
+obj.name 
+// where does goto definition on the last expression jump to?
+```
 
-### Do we want immutable program state for the interpreter?
+Typeless chooses to define a variable definition as an assignment to a property that didn't exist yet, or a variable declaration, so goto definition on the last `obj.name` line jumps to `name` in `obj.name = "Remy"`.
 
-Advantage: when code is changed, interpretation can be run right from the changed point, which is exactly where we need it.
+Because definition locations are assigned to values, when an assignment occurs to location that already has a value, any definition location attached to the existing value must be copied to the new value.
 
-Disadvantage: using immutable data-structure changes the performance characteristics of the program. What's the worst case?
-Storing the program state at every debug point can cost a lot of memory. We can also store it every X debug points.
+## Trust levels
+When an exception occurs in user code during test execution, Typeless may choose to show an error not where the exception occurred but on any of the calls in the exception callstack. The decision on where to place blame is made using trust levels. Typeless has three trust levels:
 
-### How do we connect the information available at debug points to LSP requests?
-LSP requests map to elements in the AST.
-When we interpret an AST element, we assign the resulting value to that AST element.
+- Trusted, a function can have an associated test function. A function is trusted its associated test passes. Native functions such as `Array.prototype.reduce` are also trusted.
+- IsTest, test functions and any functions or lambda's defined inside the body of those test functions
+- Untrusted, any code that is not a test or trusted.
+
+Given a call and an exception that occurred during that call, blame is place on the call if the trust level of the exception site is higher than that of the call site.
+
+You might expect that any time an untrusted function calls a trusted function, any exception must be blamed on the calling function. However, this is not the case for higher order trusted functions, since they may call untrusted functions.
+
+## Error correction
+Because it's important to provide code completion while the programmer is typing, which is usually when the program does not parse, Typeless performs parse error correction on programs, after which it will run its interpreter on the repaired program. A simple example is the following:
+
+```
+const remy = { name: "Remy" }
+remy.
+// Code completion for name is shown.
+```
+
+## Execution budget
+Typeless allocates an execution budget for each test, which is drained for each interpreted operation during the test. If a test runs out of budget, an exception is thrown at that point which follows the normal blaming rules.
+
+Users can annotate tests to customise the execution budget in case they have a particularly large test, but this may impact the responsiveness of Typeless. In general, tests written for Typeless should use small datasets and not tests any performance.
+
