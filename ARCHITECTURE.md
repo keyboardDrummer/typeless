@@ -1,10 +1,10 @@
 ## What is it?
-Typeless is an LSP server that provides editor tooling for JavaScript.
+Typeless is an [LSP server](https://microsoft.github.io/language-server-protocol/) that provides editor tooling for JavaScript.
 
 ## Architecture
-Typeless uses a custom JavaScript interpreter to parse and run your JavaScript code. The LSP server invokes this interpreter once to determine which tests are defined, and then once on each test, to compute diagnostics and the mapping between definitions and references.
+Typeless uses a custom JavaScript interpreter to parse and run your JavaScript code. The LSP server invokes this interpreter once to determine which tests are defined, and then once on each test, to compute diagnostics and the mapping between definitions and references. The mapping between definitions and references is used to provide support for goto definition, find references, rename and goto symbol.
 
-For all LSP server requests that require knowledge of values, such as hover, code completion and call signature support, Typeless invokes one or more tests to compute these values on the fly.
+For all LSP server requests such as hover, code completion and call signature support, Typeless requires knowledge of runtime values, and will invoke one or more tests to compute these values on the fly.
 
 ## Definitions and references
 One thing the custom interpreter enables is resolving definitions and references. Definition sites are attached to values as metadata and travel alongside those values to where they're referred to. What's interesting is what constitutes a definition. For example, in the following program, where is the property 'name' defined?
