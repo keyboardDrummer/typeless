@@ -7,7 +7,7 @@ Typeless uses a custom JavaScript interpreter to parse and run your JavaScript c
 For all LSP server requests such as hover, code completion and call signature support, Typeless requires knowledge of runtime values, and will invoke one or more tests to compute these values on the fly.
 
 ## Definitions and references
-One thing the custom interpreter enables is resolving definitions and references. Definition sites are attached to values as metadata and travel alongside those values to where they're referred to. An important question is what constitutes a definition. For example, in the following program, where is the property 'name' defined?
+The interpreter attaches definition sites to runtime values as metadata, and records references when those values are read. An important question is what constitutes a definition. For example, in the following program, where is the property 'name' defined?
 
 ```
 const obj = {};
@@ -18,7 +18,7 @@ obj.name
 // where does goto definition on the last expression jump to?
 ```
 
-If there is a dot assignment, Typeless will attach the location of that assignment to the assigned value, but only if there wasn't already an assigned location to an existing value, otherwise it will copy the attached location from the existing to the new value. Goto definition on the last `obj.name` line jumps to `name` in `obj.name = "Remy"`.
+If there is a dot assignment, Typeless will attach the location of that assignment to the assigned value, but only if there wasn't already an assigned location to an existing value, otherwise it will copy the attached location from the existing to the new value. Go-to definition on the last `obj.name` line jumps to `name` in `obj.name = "Remy"`.
 
 ## Trust levels
 When an exception occurs in user code during test execution, Typeless may choose to show an error not where the exception occurred but on any of the calls in the exception callstack. The decision on where to place blame is made using trust levels. Typeless has three trust levels:

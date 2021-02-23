@@ -212,7 +212,7 @@ class Closure(val lambda: Lambda, val state: Scope) extends Value with ClosureLi
     } else {
       argumentValues
     }
-    lambda.documentationOption.foreach(documentation => {
+    lambda.parsedDocOption.foreach(documentation => {
       val index: Map[String, Int] = lambda.arguments.map(a => a.name).zipWithIndex.toMap
       documentation.parameters.foreach(t => index.get(t._1).foreach(parameterIndex => {
         if (argumentValues.length > parameterIndex) {
@@ -228,7 +228,7 @@ class Closure(val lambda: Lambda, val state: Scope) extends Value with ClosureLi
     val result = Statement.evaluateBody(newContext, lambda.body).toExpressionResult
     result match {
       case value: Value =>
-        lambda.documentationOption.
+        lambda.parsedDocOption.
           flatMap(documentation => documentation.returnValue).foreach(returnDocumentation => {
             value.documentation = Some(returnDocumentation)
           })

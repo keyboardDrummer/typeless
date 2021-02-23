@@ -39,10 +39,9 @@ class ObjectLiteral(val range: OffsetPointerRange, members: ListMap[Name, Expres
     for(e <- members) {
       context.evaluateExpression(e._2) match {
         case e: ExceptionResult => return e
-        case value: Value => {
+        case value: Value =>
           value.definedAt = Some(e._1)
           result.members.put(e._1.name, value)
-        }
       }
     }
     result

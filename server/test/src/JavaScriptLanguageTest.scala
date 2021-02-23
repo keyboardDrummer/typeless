@@ -421,4 +421,33 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
     val expected = Seq(Diagnostic(HumanPosition(2, 3).span(13), Some(1), "Function call failed with arguments (true)", relatedInformation = Seq(related)))
     assertResult(expected)(diagnostics)
   }
+
+  test("documentation") {
+    val program =
+      """/**
+        | * A human being regarded as an individual.
+        | * @param name A word by which the person is known.
+        | * @param age The length of time that the person has lived.
+        | */
+        |function Person(name, age) {
+        |  this.name = name;
+        |  this.age = age;
+        |}
+        |
+        |function isPresenting(person) {
+        |  return person.name == "Remy";
+        |}
+        |
+        |function isPresentingTest() {
+        |  const person = new Person("Remy", 32);
+        |  assert(isPresenting(person));
+        |}
+        |""".stripMargin
+    val (diagnostics, document) = openAndCheckDocument(server, program)
+    assert(diagnostics.isEmpty)
+
+    val completions = complete(server, program, Position(6, 15)).items
+    val expected = Seq(CompletionItem("name",None,Some("\"Remy\""),Some("A word by which the person is known."),None,None,None,None,None))
+    assertResult(expected)(completions)
+  }
 }

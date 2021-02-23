@@ -12,12 +12,42 @@ class Argument(val range: OffsetPointerRange, val name: String, val varArgs: Boo
 
 }
 
+object FunctionDocumentation {
+
+  def parseFunctionDocument(documentation: String): FunctionDocumentation = {
+    val blockTagRegex = """@([a-zA-Z]+) ([^\n]*)\n""".r
+    val tags: Map[String, Seq[String]] = blockTagRegex.findAllMatchIn(documentation).map(_match => {
+      val tag = _match.group(1)
+      val rest = _match.group(2)
+      (tag, rest)
+    }).toSeq.groupMap(t => t._1)(t => t._2)
+
+    val parameters = tags.getOrElse("param", Seq.empty[String]).flatMap((v: String) => {
+      val spaceSplit = v.split(" ")
+      if (spaceSplit.length < 2)
+        Seq.empty
+      else {
+        Seq(spaceSplit(0) -> spaceSplit.drop(1).mkString(" "))
+      }
+    }).toMap
+
+    val returnValue = tags.getOrElse("return", Seq.empty[String]).headOption
+    FunctionDocumentation(documentation, parameters, returnValue)
+  }
+}
 case class FunctionDocumentation(description: String, parameters: Map[String, String], returnValue: Option[String])
 
+
 class Lambda(val range: OffsetPointerRange, val arguments: Vector[Argument], val body: Vector[Statement],
-             val nameOption: Option[String], val documentationOption: Option[FunctionDocumentation]) extends Expression {
+             val nameOption: Option[String], val documentationOption: Option[String]) extends Expression {
+
+  val parsedDocOption: Option[FunctionDocumentation] =
+    documentationOption.map(d => FunctionDocumentation.parseFunctionDocument(d))
+
   override def evaluate(context: Context): ExpressionResult = {
-    new Closure(this, context.scope)
+    val result = new Closure(this, context.scope)
+    result.documentation = parsedDocOption.map(d => d.description)
+    result
   }
 
   override def childElements: Seq[SourceElement] = {
