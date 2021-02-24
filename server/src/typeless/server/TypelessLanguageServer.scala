@@ -6,8 +6,8 @@ import miksilo.editorParser.parsers.editorParsers.TextEdit
 import miksilo.languageServer.core.language.{CompilationCache, SourcePathFromElement}
 import miksilo.lspprotocol.lsp._
 import typeless.{ChainElement, JavaScriptLanguage}
-import typeless.ast.{Expression, NameLike}
-import typeless.interpreter.{ExpressionResult, FindScope, FindValue, ReturnInformationWithThrow, ScopeInformation, ScopeLike, Value}
+import typeless.ast.{Declaration, Expression, Lambda, NameLike}
+import typeless.interpreter.{Closure, ExpressionResult, FindScope, FindValue, ReturnInformationWithThrow, ScopeInformation, ScopeLike, Value}
 import typeless.miksilooverwrite.BaseMiksiloLanguageServer
 
 class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompilation](JavaScriptLanguage)
@@ -24,6 +24,19 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
       case value: Value => Some(value)
       case _ => None
     })
+  }
+
+  def getOrderedTests(element: SourceElement): Seq[Closure] = {
+    val elementPath = getCompilation.context.configuration.pathsByElement(element)
+    val associatedTest = for {
+      containingFunction <- elementPath.ancestors.collect({ case lambda: Lambda => lambda }).lastOption
+      functionCorrectness <- getCompilation.context.functionCorrectness
+      test <- functionCorrectness.functionsWithTests.get(containingFunction)
+    } yield {
+      test
+    }
+    val testClosures = getCompilation.tests.values.toSeq
+    associatedTest.fold(testClosures)(test => testClosures.sortBy(c => c != test))
   }
 
   def getSourceElementResult(element: SourceElement): Option[ExpressionResult] = {

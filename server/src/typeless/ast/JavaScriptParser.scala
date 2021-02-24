@@ -1,6 +1,6 @@
 package typeless.ast
 
-import miksilo.editorParser.parsers.editorParsers.{History, LeftRecursiveCorrectingParserWriter}
+import miksilo.editorParser.parsers.editorParsers.{History, LeftRecursiveCorrectingParserWriter, OffsetPointerRange}
 import miksilo.editorParser.parsers.strings.{CommonStringReaderParser, WhitespaceParserWriter}
 
 import scala.collection.immutable.ListMap
@@ -97,9 +97,9 @@ object JavaScriptParser extends CommonStringReaderParser
 
   val jsDocComment = RegexParser("""/\*\*+[^*]*\*+(?:[^/*][^*]*\*+)*/""".r, "block comment")
 
-  val functionDeclaration = (jsDocComment.option ~< "function" ~ name ~ arguments ~ body).
-    withSourceRange((range, t) => new Declaration(range, t._1._1._2,
-      new Lambda(range, t._1._2, t._2, Some(t._1._1._2.name), t._1._1._1)))
+  val functionDeclaration = (jsDocComment.option ~ ("function" ~> name ~ arguments ~ body).
+    withSourceRange((range, t) => (range, t))).map({ case (doc, (range, t)) => new Declaration(range, t._1._1,
+      new Lambda(range, t._1._2, t._2, Some(t._1._1.name), doc)) })
 
   val declaration: Parser[Declaration] = ("const" ~> name ~< "=" ~ expression ~< statementEnd).
     withSourceRange((range, t) => new Declaration(range, t._1, t._2))

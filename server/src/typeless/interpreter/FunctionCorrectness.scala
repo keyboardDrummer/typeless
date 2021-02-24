@@ -2,7 +2,7 @@ package typeless.interpreter
 
 import typeless.ast.Lambda
 
-class FunctionCorrectness(functionsWithTests: Map[Lambda, Closure], tests: Set[Lambda]) {
+class FunctionCorrectness(val functionsWithTests: Map[Lambda, Closure], val tests: Set[Lambda]) {
   var functionCorrectness = Map.empty[Lambda, TrustLevel]
 
   def getLambdaTrustLevel(context: Context, lambda: Lambda): TrustLevel = {
