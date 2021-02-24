@@ -94,7 +94,10 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
         }
         memberNames.map(member => {
           val value = scope.getValue(member)
-          CompletionItem(member, detail = Some(value.represent()), documentation = value.documentation)
+          val valueLine = s"Example value: `${value.represent()}`"
+          val total = valueLine + value.documentation.map(d => "\n\n" + d).getOrElse("")
+
+          CompletionItem(member, detail = None, documentation = Some(MarkupContent.markdown(total)))
         })
       })
     }).toSeq

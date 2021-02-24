@@ -130,7 +130,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
     val (diagnostics, document) = openAndCheckDocument(server, program)
     assert(diagnostics.isEmpty)
     val fnsCompletion = server.complete(DocumentPosition(document, Position(5, 34)))
-    assert(Seq(CompletionItem("reduce", detail = Some("native function"))).diff(fnsCompletion.items).isEmpty)
+    assert(Seq(CompletionItem("reduce", documentation = Some(valueAsMarkup("native function")))).diff(fnsCompletion.items).isEmpty)
 
 //    val fnsCompletion = server.hoverRequest(DocumentPosition(document, Position(4, 44)))
 //    assert(Seq(CompletionItem("reduce")).diff(fnsCompletion.items).isEmpty)
@@ -282,6 +282,8 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
     assertResult(expected)(definitions)
   }
 
+  def valueAsMarkup(value: String): MarkupContent = MarkupContent.markdown(s"Example value: `$value`")
+
   test("code completion on variables") {
     val program =
       """const abcGlobal = "hello";
@@ -293,8 +295,8 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |
         |};
         |""".stripMargin
-    val globalItem = CompletionItem("abcGlobal", detail = Some("\"hello\""))
-    val localItem = CompletionItem("abcLocal", detail = Some("\"goodbye\""))
+    val globalItem = CompletionItem("abcGlobal", documentation = Some(valueAsMarkup("\"hello\"")))
+    val localItem = CompletionItem("abcLocal", documentation = Some(valueAsMarkup("\"goodbye\"")))
     assertResult(Seq(globalItem))(complete(server, program, HumanPosition(3, 6)).items)
 
     assertResult(Seq(localItem, globalItem))(complete(server, program, HumanPosition(6, 6)).items)
@@ -319,7 +321,9 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
     // TODO Assert that there is only a parsing diagnostic but not another one
     // assert(getDiagnostics(server, program).isEmpty)
 
-    val expected = Seq(CompletionItem("name", detail = Some("\"Remy\"")), CompletionItem("age", detail = Some("32")))
+    val expected = Seq(
+      CompletionItem("name", documentation = Some(valueAsMarkup("\"Remy\""))),
+      CompletionItem("age", documentation = Some(valueAsMarkup("32"))))
     val definitions = complete(server, program, HumanPosition(7, 17)).items
     assertResult(expected)(definitions)
   }
@@ -447,7 +451,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
     assert(diagnostics.isEmpty)
 
     val completions = complete(server, program, Position(6, 15)).items
-    val expected = Seq(CompletionItem("name",None,Some("\"Remy\""),Some("A word by which the person is known."),None,None,None,None,None))
+    val expected = Seq(CompletionItem("name",None,None,Some(MarkupContent.markdown("Example value: `\"Remy\"`\n\nA word by which the person is known.")),None,None,None,None,None))
     assertResult(expected)(completions)
   }
 }
