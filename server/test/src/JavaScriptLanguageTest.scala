@@ -85,12 +85,12 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
       relatedInformation = Seq(assertInformation))
     assertResult(Seq(diagnostic))(diagnostics)
 
-    val expectedPersonHover = Hover(Seq(RawMarkedString("javascript", "{ name: \"Remy\", age: 32 }")),
+    val expectedPersonHover = Hover(valueAsMarkup("{ name: \"Remy\", age: 32 }"),
       Some(HumanPosition(12, 10).span(6)))
     val personHover: Hover = hover(server, program, HumanPosition(12, 11)).get
     assertResult(expectedPersonHover)(personHover)
 
-    val expectedNameHover = Hover(Seq(RawMarkedString("javascript", "\"Remy\"")),
+    val expectedNameHover = Hover(valueAsMarkup("\"Remy\""),
       Some(HumanPosition(12, 10).span(11)))
     val nameHover: Hover = hover(server, program, HumanPosition(12, 17)).get
     assertResult(expectedNameHover)(nameHover)
@@ -282,7 +282,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
     assertResult(expected)(definitions)
   }
 
-  def valueAsMarkup(value: String): MarkupContent = MarkupContent.markdown(s"Example value: `$value`")
+  def valueAsMarkup(value: String): MarkupContent = MarkupContent.markdown(s"Example value:\n```javascript\n$value\n```")
 
   test("code completion on variables") {
     val program =
@@ -380,7 +380,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |  person;
         |};
         |""".stripMargin
-    val expected = Hover(Seq(RawMarkedString("javascript", "{ name: \"Remy\", age: 32 }")),
+    val expected = Hover(valueAsMarkup("{ name: \"Remy\", age: 32 }"),
       Some(HumanPosition(3, 3).span(6)))
     val result: Hover = hover(server, program, HumanPosition(3, 5)).get
     assertResult(expected)(result)
@@ -451,7 +451,7 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
     assert(diagnostics.isEmpty)
 
     val completions = complete(server, program, Position(6, 15)).items
-    val expected = Seq(CompletionItem("name",None,None,Some(MarkupContent.markdown("Example value: `\"Remy\"`\n\nA word by which the person is known.")),None,None,None,None,None))
+    val expected = Seq(CompletionItem("name",None,None,Some(MarkupContent.markdown("Example value:\n```javascript\n\"Remy\"\n```\n\nA word by which the person is known.")),None,None,None,None,None))
     assertResult(expected)(completions)
   }
 }

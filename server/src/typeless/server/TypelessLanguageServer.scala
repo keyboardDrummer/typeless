@@ -78,6 +78,16 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
 
   override def getOptions: CompletionOptions = CompletionOptions(resolveProvider = false, Seq("."))
 
+  def getMarkupContentForValue(value: Value): MarkupContent = {
+    val valueLine =
+      s"""Example value:
+         |```javascript
+         |${value.represent()}
+         |```""".stripMargin
+    val total = valueLine + value.documentation.map(d => "\n\n" + d).getOrElse("")
+    MarkupContent.markdown(total)
+  }
+
   override def complete(parameters: DocumentPosition): CompletionList = {
     logger.debug("Went into complete")
     val text: ParseText = documentManager.getFileParseText(parameters.textDocument.uri)
@@ -94,10 +104,7 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
         }
         memberNames.map(member => {
           val value = scope.getValue(member)
-          val valueLine = s"Example value: `${value.represent()}`"
-          val total = valueLine + value.documentation.map(d => "\n\n" + d).getOrElse("")
-
-          CompletionItem(member, detail = None, documentation = Some(MarkupContent.markdown(total)))
+          CompletionItem(member, detail = None, documentation = Some(getMarkupContentForValue(value)))
         })
       })
     }).toSeq
@@ -166,12 +173,9 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
   override def createCompilation(cache: CompilationCache, rootFile: Option[String]): JavaScriptCompilation =
     new JavaScriptCompilation(cache, rootFile)
 
-
-
   override def hover(request: DocumentPosition): Option[Hover] = {
     valueFromPosition(request).map(t => {
-      val markedString = RawMarkedString("javascript", s"${t._2.represent()}")
-      Hover(Seq(markedString), t._1.rangeOption.map(r => r.toSourceRange))
+      Hover(getMarkupContentForValue(t._2), t._1.rangeOption.map(r => r.toSourceRange))
     })
   }
 
