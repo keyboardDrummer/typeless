@@ -19,7 +19,7 @@ class FunctionCorrectness(val functionsWithTests: Map[Lambda, Closure], val test
           } else {
             val testResult = context.withFreshCallStack().runTest(test)
             val testPassed = testResult match {
-              case _: ExceptionResult => Untrusted
+              case _: ExceptionResult => Broken
               case _ => Trusted
             }
             functionCorrectness += lambda -> testPassed

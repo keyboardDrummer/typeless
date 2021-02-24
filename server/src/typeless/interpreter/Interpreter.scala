@@ -24,6 +24,7 @@ trait ExpressionResult {
 }
 
 trait UserExceptionResult extends ExceptionResult {
+  def element: SourceElement
   def callStack: List[Frame]
 
   // TOOD maybe replace by making the assert closures untrusted.
@@ -33,7 +34,6 @@ trait UserExceptionResult extends ExceptionResult {
 }
 
 trait SimpleExceptionResult extends UserExceptionResult {
-  def element: SourceElement
   def message: String
 
   def toDiagnostic: Diagnostic = {
@@ -281,4 +281,6 @@ case class AssertEqualFailure(callStack: List[Frame],
   }
 
   override def canBeModified: Boolean = false
+
+  override def element: SourceElement = call
 }

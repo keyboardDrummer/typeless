@@ -53,6 +53,10 @@ object Trusted extends TrustLevel {
 object Untrusted extends TrustLevel {
   override def level: Int = 0
 }
+object Broken extends TrustLevel {
+  override def level: Int = -1
+}
+
 object TestFrameworkCall extends CallLike
 case class Frame(call: CallLike, closure: ClosureLike)
 class Context(var configuration: RunConfiguration,

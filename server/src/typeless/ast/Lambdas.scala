@@ -68,7 +68,7 @@ case class IncorrectNativeCall(callStack: List[Frame], file: String, exception: 
     Diagnostic(call.rangeOption.get.toSourceRange, Some(1), message, relatedInformation = related.toSeq)
   }
 
-
+  override def element: SourceElement = call
 }
 
 // TODO remove file argument
@@ -83,6 +83,7 @@ case class CorrectCallGaveException(callStack: List[Frame], file: String, except
     val relatedInfo = RelatedInformation(FileRange(file, innerDiagnostic.range), innerDiagnostic.message)
     Diagnostic(call.rangeOption.get.toSourceRange, Some(1), message, relatedInformation = Seq(relatedInfo))
   }
+  override def element: SourceElement = call
 }
 
 class Call(range: OffsetPointerRange, target: Expression, arguments: Vector[Expression]) extends CallElement(range, target, arguments) {

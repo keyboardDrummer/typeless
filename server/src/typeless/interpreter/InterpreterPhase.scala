@@ -58,15 +58,27 @@ object InterpreterPhase {
     })
 
     val tests = testsByName.values.map(c => c.lambda).toSet
-    context.functionCorrectness = Some(new FunctionCorrectness(functionsWithTests, tests))
+    val functionCorrectness = new FunctionCorrectness(functionsWithTests, tests)
+    context.functionCorrectness = Some(functionCorrectness)
 
     javaScriptCompilation.context = context
 
-    testsByName.foreach(test => {
-      val result = context.runTest(test._2)
+    testsByName.values.foreach(test => {
+      // TODO add caching for test results, so results for tests run to determine trustLevel can be reused.
+      val result = context.runTest(test)
       result match {
         case e: UserExceptionResult =>
-          compilation.diagnostics += FileDiagnostic(compilation.rootFile.get, e.toDiagnostic)
+          val skipDiagnostic = (for {
+            elementPath <- configuration.pathsByElement.get(e.element)
+            containingLambda <- elementPath.ancestors.collect({ case lambda: Lambda => lambda}).lastOption
+            testForLambda <- functionsWithTests.get(containingLambda)
+          } yield {
+            val trustLevel = functionCorrectness.getLambdaTrustLevel(context, containingLambda)
+            trustLevel == Broken && test != testForLambda
+          }).getOrElse(false)
+          if (!skipDiagnostic) {
+            compilation.diagnostics += FileDiagnostic(compilation.rootFile.get, e.toDiagnostic)
+          }
         case _ =>
       }
     })

@@ -438,21 +438,21 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
         |  this.age = age;
         |}
         |
-        |function isPresenting(person) {
-        |  return person == "Remy";
+        |function isAdult(person) {
+        |  return person > 38;
         |}
         |
-        |function isPresentingTest() {
+        |function isAdultTest() {
         |  const person = new Person("Remy", 32);
-        |  assert(isPresenting(person));
+        |  assert(isAdult(person));
         |}
         |
         |function anotherTest() {
-        |  isPresenting("Not sure what argument to pass")
+        |  isAdult("Not sure what argument to pass")
         |}
         |""".stripMargin
     val (diagnostics, document) = openAndCheckDocument(server, program)
-    assert(diagnostics.nonEmpty)
+    assertResult(1)(diagnostics.length)
 
     val completions = complete(server, program, Position(6, 15)).items
     val expected = Seq(CompletionItem("name",None,None,Some(MarkupContent.markdown("Example value:\n```javascript\n\"Remy\"\n```\n\nA word by which the person is known.")),None,None,None,None,None))
@@ -464,8 +464,8 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
     assertResult(expectedHoverPerson)(hoverPerson)
 
     val hoverIsPresenting = hover(server, program, Position(20, 6))
-    val expectedHoverIsPresenting = Some(Hover(valueAsMarkup("function isPresenting(person) {\n  return person == \"Remy\";\n}"),
-      Some(SourceRange(Position(20,2),Position(20,14)))))
+    val expectedHoverIsPresenting = Some(Hover(valueAsMarkup("function isAdult(person) {\n  return person > 38;\n}"),
+      Some(SourceRange(Position(20,2),Position(20,9)))))
     assertResult(expectedHoverIsPresenting)(hoverIsPresenting)
   }
 }

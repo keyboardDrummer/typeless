@@ -69,8 +69,9 @@ object JavaScriptParser extends CommonStringReaderParser
   val subtraction = (expression14 ~< "-" ~ expression14).withSourceRange((range, t) => new Subtraction(range, t._1, t._2))
   lazy val expression14: Parser[Expression] = new Lazy(addition | subtraction | expression15)
 
+  val moreThanParser = (expression12 ~< ">" ~ expression12).withSourceRange((range, t) => new MoreThan(range, t._1, t._2))
   val lessThanParser = (expression12 ~< "<" ~ expression12).withSourceRange((range, t) => new LessThan(range, t._1, t._2))
-  lazy val expression12: Parser[Expression] = new Lazy(lessThanParser | expression14)
+  lazy val expression12: Parser[Expression] = new Lazy(lessThanParser | moreThanParser | expression14)
 
   val equalsParser = (expression11 ~< "==" ~ expression11).withSourceRange((range, t) => new Equals(range, t._1, t._2))
   lazy val expression11: Parser[Expression] = new Lazy(equalsParser | expression12)

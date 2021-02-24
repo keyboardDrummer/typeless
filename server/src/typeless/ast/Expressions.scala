@@ -118,6 +118,15 @@ class Subtraction(val range: OffsetPointerRange, val left: Expression, val right
   }
 }
 
+class MoreThan(val range: OffsetPointerRange, val left: Expression, val right: Expression) extends BinaryExpression {
+  override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = {
+    (leftValue, rightValue) match {
+      case (leftInt: IntValue, rightInt: IntValue) => new BooleanValue(leftInt.value > rightInt.value)
+      case _ => TypeError(context.callStack, left, "that supports the '>' operator", leftValue)
+    }
+  }
+}
+
 class LessThan(val range: OffsetPointerRange, val left: Expression, val right: Expression) extends BinaryExpression {
   override def evaluate(context: Context, leftValue: Value, rightValue: Value): ExpressionResult = {
     (leftValue, rightValue) match {
