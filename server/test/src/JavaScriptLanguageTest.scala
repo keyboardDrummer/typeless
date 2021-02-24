@@ -458,9 +458,14 @@ class JavaScriptLanguageTest extends AnyFunSuite with LanguageServerTest {
     val expected = Seq(CompletionItem("name",None,None,Some(MarkupContent.markdown("Example value:\n```javascript\n\"Remy\"\n```\n\nA word by which the person is known.")),None,None,None,None,None))
     assertResult(expected)(completions)
 
+    val hoverPerson = hover(server, program, Position(11, 11))
+    val expectedHoverPerson = Some(Hover(valueAsMarkup("{ name: \"Remy\", age: 32 }"),
+      Some(SourceRange(Position(11,9),Position(11,15)))))
+    assertResult(expectedHoverPerson)(hoverPerson)
+
     val hoverIsPresenting = hover(server, program, Position(20, 6))
-    val expected2 = Some(Hover(valueAsMarkup("function isPresenting(person) {\n  return person == \"Remy\";\n}"),
+    val expectedHoverIsPresenting = Some(Hover(valueAsMarkup("function isPresenting(person) {\n  return person == \"Remy\";\n}"),
       Some(SourceRange(Position(20,2),Position(20,14)))))
-    assertResult(expected2)(hoverIsPresenting)
+    assertResult(expectedHoverIsPresenting)(hoverIsPresenting)
   }
 }

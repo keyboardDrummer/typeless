@@ -42,7 +42,7 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
   def getSourceElementResult(element: SourceElement): Option[ExpressionResult] = {
     val context = getCompilation.context
     context.configuration.mode = FindValue(element)
-    for (test <- getCompilation.tests.values) {
+    for (test <- getOrderedTests(element)) {
       // TODO add test that fails when we do 'val result = test.evaluate(context, Seq.empty)' here
       val result = context.runTest(test)
       result match {
@@ -57,7 +57,7 @@ class TypelessLanguageServer extends BaseMiksiloLanguageServer[JavaScriptCompila
   def getSourceElementScope(element: SourceElement): Option[ScopeLike] = {
     val context = getCompilation.context
     context.configuration.mode = FindScope(element)
-    for (test <- getCompilation.tests.values) {
+    for (test <- getOrderedTests(element)) {
       // TODO add test that fails when we do 'val result = test.evaluate(context, Seq.empty)' here
       val result = context.runTest(test)
       result match {
