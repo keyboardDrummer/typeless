@@ -16,7 +16,7 @@ There are also features that you don't normally see:
 - Inline errors for failed tests are shown not where the exception occurred, but where the bug likely is.
 - There are no references to types anywhere, everything is shown using values.
 
-If you're currently using TypeScript and you're curious how that compares to Typeless, go [here](#why-use-javascript-and-typeless-when-i-can-use-typescript) for more information. If you're using JavaScript and you're curious what benefits Typeless brings on top of existing JavaScript tooling, go [here](#why-not-use-the-javascript-support-in-typescripts-lsp-server) for more information.
+For a comparison between TypeScript and Typeless, go [here](#why-use-javascript-and-typeless-when-i-can-use-typescript). For a comparison between JavaScript and Typeless, go [here](#why-not-use-the-javascript-support-in-typescripts-lsp-server).
 
 <!-- Pipe works better for Typeless than compose, since when writing pipe can already execute the function that executes first, since it's supplied first. -->
 
