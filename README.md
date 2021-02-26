@@ -25,7 +25,7 @@ Typeless is currently in the prototype phase. You can only use it by building it
 
 Steps to try Typeless:
 - Make sure VSCode can be run from your path using `code`. More information is [here](https://stackoverflow.com/a/36882426/93197).
-- Install the `mill` build tool by following [these instructions](https://com-lihaoyi.github.io/mill/#installation). 
+- Install the Mill build tool by following [these instructions](https://com-lihaoyi.github.io/mill/#installation). 
 - Run `mill server.vscode` to start VSCode with the Typeless extension.
 - Create a `.tl`, write some JavaScript and a function ending in `Test`.
 
